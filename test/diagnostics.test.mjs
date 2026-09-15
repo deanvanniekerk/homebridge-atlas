@@ -24,6 +24,17 @@ function snapshot(overrides = {}) {
     failureCode: undefined,
     retryAtMs: 0,
     targets: new Map(),
+    stream: {
+      mode: 'push',
+      connected: true,
+      connects: 1,
+      disconnects: 0,
+      updates: 2,
+      lastUpdateMs: 3000,
+      lastUpdateLatencyMs: 850,
+      lastFailure: undefined,
+      offline: false,
+    },
     ...overrides,
   };
 }
@@ -50,6 +61,18 @@ test('debug reports are sanitized, bounded to one per five minutes and off by de
   assert.equal(report.site.lastSuccessAgeMs, 4000);
   assert.equal(report.site.failureCode, null);
   assert.deepEqual(report.site.reads, { panel: 3, cloud: 1, lastDurationMs: 1200 });
+  assert.deepEqual(report.stream, {
+    mode: 'push',
+    connected: true,
+    connects: 1,
+    disconnects: 0,
+    updates: 2,
+    lastUpdateAgeMs: 2000,
+    lastUpdateLatencyMs: 850,
+    lastFailure: null,
+    offline: false,
+    events: null,
+  });
   assert.deepEqual(report.panel.partitions, [
     { id: 0, arm: 'disarmed', alarm: 'false', exitDelaySeconds: '0' },
   ]);

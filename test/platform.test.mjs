@@ -88,6 +88,8 @@ test('registers one security system and one sensor per zone with stable identiti
     sensor: 'contact',
   });
   assert.ok(cold.logs.some((line) => line.includes('arming and disarming disabled')));
+  await waitUntil(() => cold.logs.includes('Push updates connected.'));
+  assert.ok(cold.calls.some((call) => call.route === 'events'));
   assert.ok(cold.calls.every((call) => call.route !== 'arm'));
   assert.ok(!cold.logs.join('\n').includes(credentials.password));
   cold.stop();

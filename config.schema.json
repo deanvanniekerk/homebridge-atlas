@@ -45,12 +45,28 @@
         "type": "integer",
         "minimum": 0
       },
+      "updates": {
+        "title": "Updates",
+        "type": "string",
+        "default": "push",
+        "oneOf": [
+          {
+            "title": "Push (instant, with polling fallback)",
+            "enum": ["push"]
+          },
+          {
+            "title": "Polling only",
+            "enum": ["poll"]
+          }
+        ]
+      },
       "pollInterval": {
         "title": "Poll interval (seconds)",
         "type": "integer",
         "minimum": 10,
         "maximum": 300,
-        "default": 30
+        "default": 30,
+        "description": "Polling only: seconds between polls. Push: interval used while the push connection is unavailable."
       },
       "debug": {
         "title": "Debug diagnostics",

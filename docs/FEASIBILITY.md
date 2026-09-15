@@ -74,5 +74,5 @@ The Atlas app is **Atlas24**, published under RISCO's own package namespace (`co
 2. **Owner-run `npm run diagnose`** to confirm the envelope, `state.status` fields, `armedState`/zone `status` values and `zoneType` codes. Correct the model if any differ.
 3. Install a packed build on the owner's Homebridge with `enableControl: false` and soak-test state and freshness.
 4. **Owner-supervised command test:** partial arm → disarm → full arm → disarm, recording confirmation timing and exit delay in `docs/VALIDATION.md`.
-5. Consider the server-sent events stream (`ControlPanel/sse/connect`) to replace polling once the read path is proven.
+5. ✅ Hybrid push updates over the server-sent events stream (`ControlPanel/sse/connect`) with polling fallback; latency and coverage validation pending.
 6. Release preparation mirroring the sibling plugins: CHANGELOG, release workflow, ARMv7 lane and npm trusted publishing.

@@ -77,6 +77,15 @@
       <input id="enable-control" type="checkbox" /> Allow arming and disarming from Apple Home
     </label>
     <p class="hint">Off by default. When off, the security system is read-only.</p>
+    <label for="updates">Updates</label>
+    <select id="updates" class="form-control">
+      <option value="push">Push (instant, with polling fallback)</option>
+      <option value="poll">Polling only</option>
+    </select>
+    <p class="hint">
+      Push listens for changes from RISCO Cloud and polls every five minutes as a safety net. The
+      poll interval applies whenever push is unavailable.
+    </p>
     <div class="two-columns">
       <div>
         <label for="partial-arm-mode">Show partial arm as</label>

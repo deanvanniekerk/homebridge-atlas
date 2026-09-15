@@ -8,6 +8,7 @@ test('applies safe defaults with control disabled', () => {
   const config = parseConfig(base);
   assert.equal(config.name, 'Atlas');
   assert.equal(config.pollInterval, 30);
+  assert.equal(config.updates, 'push');
   assert.equal(config.enableControl, false);
   assert.equal(config.partialArmMode, 'stay');
   assert.equal(config.includeZones, true);
@@ -44,6 +45,7 @@ test('rejects invalid fields without echoing values', () => {
     [{ pin: 1234 }, 'pin'],
     [{ username: '' }, 'username'],
     [{ pollInterval: 5 }, 'pollInterval'],
+    [{ updates: 'sse' }, 'updates'],
     [{ siteId: '42' }, 'siteId'],
     [{ partialArmMode: 'away' }, 'partialArmMode'],
     [{ enableControl: 'yes' }, 'enableControl'],
