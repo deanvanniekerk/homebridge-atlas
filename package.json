@@ -1,7 +1,6 @@
 {
   "name": "homebridge-atlas",
-  "version": "0.1.0-alpha.5",
-  "private": true,
+  "version": "0.1.0-alpha.6",
   "description": "Atlas Home Security (RISCO Cloud) detector state and arming for Homebridge",
   "type": "module",
   "main": "dist/index.js",
@@ -13,8 +12,11 @@
   "packageManager": "npm@10.9.8",
   "keywords": [
     "homebridge-plugin",
+    "supports-hap",
     "risco",
-    "atlas"
+    "atlas",
+    "alarm",
+    "security-system"
   ],
   "license": "MIT",
   "author": "Dean van Niekerk",
@@ -24,6 +26,7 @@
   },
   "files": [
     "dist/*.js",
+    "!dist/diagnose.js",
     "homebridge-ui/",
     "config.schema.json",
     "README.md",
@@ -33,7 +36,10 @@
     "docs/CONFIGURATION.md",
     "docs/INSTALLATION.md",
     "docs/VALIDATION.md",
-    "docs/RELEASING.md"
+    "docs/RELEASING.md",
+    "scripts/check-release.mjs",
+    "scripts/release-notes.mjs",
+    "RELEASE_STEPS.md"
   ],
   "scripts": {
     "build": "node scripts/build.mjs",

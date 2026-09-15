@@ -36,6 +36,7 @@
   - **Partial arm:** with all zones closed, Home (stay) arm was accepted in 4.9 s and confirmed by panel state in 6.1 s; the owner confirmed the app showed partially armed. No fault or warning was logged.
   - **Disarm:** accepted in 3.4 s and confirmed in 4.6 s.
   - **Full (away) arm:** not tested; the owner chose to stop before arming with interior PIRs live.
+- 2026-09-15, Homebridge verification rehearsal: the packed `0.1.0-alpha.6` tarball was installed with Homebridge 2.4.0 in a clean directory and started with no platform, only `platform`, minimal required and full generated configurations, modelled on the `homebridge/plugins` automated checks. Homebridge started in every case without crashes. The platform-only case logged "Atlas is not configured" and made no requests, and a synthetic `example.invalid` account paused on invalid credentials. Each run exited on SIGTERM in about 0.3 s with code 0, and a restart on the same port had no conflict. The built code matched none of the checker's code-safety patterns.
 - The web UI route was observed read-only on a live account; see [research](research/riscocloud-webui-api.md).
 
 ## Remaining evidence

@@ -2,6 +2,15 @@
 
 Release notes for `homebridge-atlas` live here. The release workflow publishes the section matching `package.json` to GitHub, so the npm package, tag and GitHub release all use the same version and notes.
 
+## [0.1.0-alpha.6] - 2026-09-15
+
+### Changed
+
+- When installed without an account, the plugin logs that it is not configured, starts no monitoring and removes accessories from an earlier setup.
+- Declare HAP transport support for Homebridge plugin discovery.
+- Publish through the same approved GitHub Actions procedure as homebridge-centsys, which creates the matching Git tag and GitHub release from this changelog.
+- The development-only `diagnose` tool is no longer included in the npm package.
+
 ## [0.1.0-alpha.5] - 2026-09-15
 
 ### Fixed

@@ -18,7 +18,7 @@ concurrency:
 jobs:
   checks:
     if: github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/ci.yml
+    uses: ./.github/workflows/check.yml
 
   publish:
     if: github.ref == 'refs/heads/main' && vars.NPM_PUBLISH_ENABLED == 'true'
