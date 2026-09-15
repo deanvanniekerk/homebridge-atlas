@@ -34,6 +34,8 @@ function snapshot(overrides = {}) {
       lastUpdateLatencyMs: 850,
       lastFailure: undefined,
       offline: false,
+      lastConnectionMs: 358_000,
+      lastDropSilenceMs: 120_000,
     },
     ...overrides,
   };
@@ -71,6 +73,8 @@ test('debug reports are sanitized, bounded to one per five minutes and off by de
     lastUpdateLatencyMs: 850,
     lastFailure: null,
     offline: false,
+    lastConnectionMs: 358_000,
+    lastDropSilenceMs: 120_000,
     events: null,
   });
   assert.deepEqual(report.panel.partitions, [

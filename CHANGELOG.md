@@ -2,6 +2,17 @@
 
 Release notes for `homebridge-atlas` live here. The release workflow publishes the section matching `package.json` to GitHub, so the npm package, tag and GitHub release all use the same version and notes.
 
+## [0.1.0-alpha.3] - 2026-09-15
+
+### Fixed
+
+- A dropped push connection no longer makes accessories briefly unavailable: state stays fresh for one polling window while the plugin refreshes and reconnects.
+- Refreshes around a push drop and reconnect read the cloud's cached state once a status time is known, instead of asking the panel every two minutes.
+
+### Added
+
+- Connection length and silence before a drop in the diagnostic report.
+
 ## [0.1.0-alpha.2] - 2026-09-15
 
 ### Added

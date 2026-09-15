@@ -113,6 +113,8 @@ export class Diagnostics {
         lastUpdateLatencyMs: snapshot.stream.lastUpdateLatencyMs ?? null,
         lastFailure: snapshot.stream.lastFailure ?? null,
         offline: snapshot.stream.offline ?? null,
+        lastConnectionMs: snapshot.stream.lastConnectionMs ?? null,
+        lastDropSilenceMs: snapshot.stream.lastDropSilenceMs ?? null,
         events: this.#eventStats?.() ?? null,
       },
       panel: snapshot.panel ? panelReport(snapshot.panel) : null,

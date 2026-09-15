@@ -15,6 +15,7 @@ function harness(options = {}) {
   const gateway = {
     read: async (_signal, readOptions = {}) => {
       reads.push({ at: scheduler.now(), notBefore: readOptions.notBefore });
+      if (state.fail) throw state.fail;
       const value = panel({
         partitions: [{ id: 0, armedState: state.armedState, alarmState: 0, exitDelayTO: 0 }],
       }).response;
@@ -125,6 +126,51 @@ test('a dropped stream polls immediately, falls back to the poll interval and re
   await h.scheduler.advance(1000);
   assert.equal(h.streams.length, 3, 'backoff doubles');
   assert.equal(h.coordinator.snapshot().stream.lastFailure, undefined, 'cleared on reconnect');
+  h.coordinator.close();
+});
+
+test('an idle stream dropped by the network keeps state fresh and reconnects with a cache refresh', async () => {
+  // Observed on the owner's account: the stream closed 120 s after the last pushed change.
+  const h = harness();
+  h.coordinator.start();
+  await h.scheduler.advance(1000);
+  h.state.statusUpdatedAt = '2026-09-15T17:00:05Z';
+  push(h, '2026-09-15T17:00:05Z');
+  await h.scheduler.advance(1000);
+  const lastRead = h.reads.at(-1).at;
+  await h.scheduler.advance(120_000);
+  h.streams[0].reject(new CloudError('unavailable'));
+  await h.scheduler.flush();
+  const snapshot = h.coordinator.snapshot();
+  assert.equal(snapshot.status, 'healthy', 'a drop alone does not expire state');
+  assert.equal(snapshot.stream.lastDropSilenceMs, 121_000);
+  assert.equal(snapshot.stream.lastConnectionMs, 122_000);
+  const reads = h.reads.length;
+  await h.scheduler.advance(1000);
+  assert.equal(h.streams.length, 2, 'reconnected after one second');
+  assert.ok(h.reads.length > reads, 'refreshed after the drop');
+  assert.ok(
+    h.reads.slice(reads).every((read) => read.notBefore === Date.parse('2026-09-15T17:00:05Z')),
+    'drop and reconnect refreshes use the cloud cache, not the panel',
+  );
+  assert.ok(h.reads.at(-1).at > lastRead);
+  assert.equal(h.coordinator.snapshot().status, 'healthy');
+  h.coordinator.close();
+});
+
+test('state that cannot be refreshed after a drop expires one polling window later', async () => {
+  const h = harness();
+  h.coordinator.start();
+  await h.scheduler.advance(1000);
+  await h.scheduler.advance(200_000);
+  h.state.fail = new CloudError('unavailable');
+  h.streams[0].reject(new CloudError('unavailable'));
+  await h.scheduler.flush();
+  assert.equal(h.coordinator.snapshot().status, 'healthy');
+  await h.scheduler.advance(89_000);
+  assert.equal(h.coordinator.snapshot().status, 'healthy');
+  await h.scheduler.advance(1000);
+  assert.equal(h.coordinator.snapshot().status, 'stale', 'expires 90 s after the drop');
   h.coordinator.close();
 });
 
