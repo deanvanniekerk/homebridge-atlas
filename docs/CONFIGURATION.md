@@ -1,6 +1,14 @@
 # Configuration
 
-Use Homebridge UI → Plugins → Atlas → Plugin Config. The platform alias is `Atlas`.
+Use Homebridge UI → Plugins → Atlas → Settings. The platform alias is `Atlas`.
+
+## Settings page
+
+1. **Account:** the email, password and panel user code you use in the Atlas app. If the account has several sites, the page asks you to choose one.
+2. **Detectors:** **Load detectors** signs in once and reads the panel (it never arms, disarms or bypasses). Every detector is listed with its current state, a **Show** checkbox and its **Type in Apple Home** (motion or contact sensor). Saved choices appear before loading and are kept when you reload.
+3. **Options:** name, arming and disarming, partial-arm mode, poll interval and debug diagnostics.
+
+Click **Save**, then restart the Atlas child bridge. Loading detectors opens its own cloud session; the running plugin re-authenticates automatically if needed.
 
 ```json
 {
@@ -33,7 +41,7 @@ Use Homebridge UI → Plugins → Atlas → Plugin Config. The platform alias is
 
 ## Zones
 
-Zone names containing PIR, motion, beam, curtain or detector become motion sensors; all others become contact sensors. Override a zone by its ID, or hide it. A type change keeps the accessory identity; hiding a zone removes its accessory after the next fresh poll. A bypassed zone is shown inactive.
+Detectors not listed in `zones` use a name-based default: names containing PIR, motion, beam, curtain or detector become motion sensors; all others become contact sensors. The panel's zone type code does not distinguish them (it was 256 for every zone on the tested panel). A type change keeps the accessory identity; hiding a zone removes its accessory after the next fresh poll. A bypassed zone is shown inactive.
 
 ## Safety
 

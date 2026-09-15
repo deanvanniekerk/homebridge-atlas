@@ -1,0 +1,109 @@
+<link rel="stylesheet" href="style.css" />
+<div class="atlas-setup">
+  <h3>Atlas Home Security</h3>
+  <p>Show your RISCO Cloud alarm and its detectors in Apple Home.</p>
+  <p id="notice" role="status" aria-live="polite"></p>
+
+  <section aria-labelledby="account-heading">
+    <h4 id="account-heading">1. Account</h4>
+    <p class="hint">Use the email, password and panel user code you use in the Atlas app.</p>
+    <label for="username">Email</label>
+    <input id="username" class="form-control" type="email" autocomplete="username" required />
+    <label for="password">Password</label>
+    <input
+      id="password"
+      class="form-control"
+      type="password"
+      autocomplete="current-password"
+      required
+    />
+    <div class="two-columns">
+      <div>
+        <label for="pin">Panel user code (PIN)</label>
+        <input
+          id="pin"
+          class="form-control"
+          type="password"
+          inputmode="numeric"
+          autocomplete="off"
+          pattern="[0-9]{4,8}"
+          maxlength="8"
+          required
+        />
+      </div>
+      <div>
+        <label for="site-id">Site ID (optional)</label>
+        <input id="site-id" class="form-control" type="text" inputmode="numeric" />
+      </div>
+    </div>
+    <div id="site-choice" hidden>
+      <label for="site-select">This account has several sites. Choose one</label>
+      <select id="site-select" class="form-control"></select>
+    </div>
+    <p class="hint">
+      A rejected PIN pauses the plugin until restart, so the panel keypad is never locked out by
+      repeated attempts.
+    </p>
+  </section>
+
+  <section aria-labelledby="zones-heading">
+    <h4 id="zones-heading">2. Detectors</h4>
+    <p class="hint">
+      Load your detectors, then choose which appear in Apple Home and whether each is a motion or a
+      contact sensor. Loading signs in once and reads the panel; it never arms, disarms or bypasses.
+    </p>
+    <button id="load-zones" class="btn btn-primary" type="button">Load detectors</button>
+    <button id="show-all" class="btn btn-outline-secondary" type="button" hidden>Show all</button>
+    <button id="hide-all" class="btn btn-outline-secondary" type="button" hidden>Hide all</button>
+    <p id="zone-summary" class="hint"></p>
+    <table id="zone-table" class="zone-table" hidden>
+      <thead>
+        <tr>
+          <th scope="col">Show</th>
+          <th scope="col">Detector</th>
+          <th scope="col">Now</th>
+          <th scope="col">Type in Apple Home</th>
+        </tr>
+      </thead>
+      <tbody id="zone-rows"></tbody>
+    </table>
+  </section>
+
+  <section aria-labelledby="options-heading">
+    <h4 id="options-heading">3. Options</h4>
+    <label for="name">Security system name</label>
+    <input id="name" class="form-control" maxlength="64" value="Atlas" />
+    <label class="check-label">
+      <input id="enable-control" type="checkbox" /> Allow arming and disarming from Apple Home
+    </label>
+    <p class="hint">Off by default. When off, the security system is read-only.</p>
+    <div class="two-columns">
+      <div>
+        <label for="partial-arm-mode">Show partial arm as</label>
+        <select id="partial-arm-mode" class="form-control">
+          <option value="stay">Home</option>
+          <option value="night">Night</option>
+        </select>
+      </div>
+      <div>
+        <label for="poll-interval">Poll interval (seconds)</label>
+        <input
+          id="poll-interval"
+          class="form-control"
+          type="number"
+          min="10"
+          max="300"
+          step="1"
+          value="30"
+        />
+      </div>
+    </div>
+    <label class="check-label"> <input id="debug" type="checkbox" /> Debug diagnostics </label>
+    <p class="hint">
+      Writes a sanitized report to the log at most every five minutes. No detector names or
+      credentials.
+    </p>
+  </section>
+  <p class="hint">Click <strong>Save</strong> below, then restart the Atlas child bridge.</p>
+</div>
+<script src="app.js"></script>

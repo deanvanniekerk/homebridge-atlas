@@ -8,6 +8,7 @@ A Homebridge plugin for **Atlas Home Security** (RISCO Cloud) alarm systems.
 
 - One **Security System** per partition: Disarmed, Home (or Night) for partial arm, Away for full arm, and Alarm Triggered.
 - One **motion or contact sensor** per zone (detector), with bypassed zones shown as inactive.
+- A settings page that loads your detectors so you can choose which appear in Apple Home and whether each is a motion or contact sensor.
 - Optional arming and disarming from Apple Home (`enableControl`).
 
 It uses the RISCO Cloud mobile API that RISCO's apps use (the Atlas24 app is published under RISCO's package namespace), with the email, password and panel user code you use in the app.

@@ -76,7 +76,10 @@ function zoneOverrides(value: unknown): ReadonlyMap<number, ZoneOverride> {
       !Number.isSafeInteger(item.id) ||
       (item.id as number) < 0 ||
       zones.has(item.id as number) ||
-      (item.type !== 'motion' && item.type !== 'contact' && item.type !== 'hidden')
+      (item.type !== 'motion' && item.type !== 'contact' && item.type !== 'hidden') ||
+      // The settings page records the zone name for readability; it is not used for identity.
+      (item.name !== undefined &&
+        (typeof item.name !== 'string' || Array.from(item.name).length > 64))
     )
       throw new ConfigurationError('zones');
     zones.set(item.id as number, item.type);

@@ -1,0 +1,74 @@
+.atlas-setup {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 8px 4px;
+}
+.atlas-setup section {
+  border-top: 1px solid var(--bs-border-color, #aaa);
+  margin-top: 22px;
+  padding-top: 18px;
+}
+.atlas-setup label:not(.check-label) {
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 4px;
+}
+.atlas-setup .btn {
+  margin: 14px 6px 8px 0;
+}
+.atlas-setup .hint {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin-top: 8px;
+}
+.atlas-setup .two-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.atlas-setup .check-label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 12px 0;
+}
+.atlas-setup #notice {
+  min-height: 1.5em;
+}
+.atlas-setup .zone-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+}
+.atlas-setup .zone-table th,
+.atlas-setup .zone-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--bs-border-color, #aaa);
+  vertical-align: middle;
+  text-align: left;
+}
+.atlas-setup .zone-table td:first-child,
+.atlas-setup .zone-table th:first-child {
+  width: 3.5rem;
+  text-align: center;
+}
+.atlas-setup .zone-table select {
+  min-width: 8rem;
+}
+.atlas-setup .zone-table tr.hidden-zone td:nth-child(2),
+.atlas-setup .zone-table tr.hidden-zone td:nth-child(3) {
+  opacity: 0.5;
+}
+.atlas-setup [hidden] {
+  display: none !important;
+}
+@media (max-width: 480px) {
+  .atlas-setup .two-columns {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .atlas-setup .zone-table th:nth-child(3),
+  .atlas-setup .zone-table td:nth-child(3) {
+    display: none;
+  }
+}
