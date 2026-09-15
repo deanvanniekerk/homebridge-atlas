@@ -1,6 +1,6 @@
 # Architecture
 
-The plugin has no runtime dependencies. Homebridge supplies HAP; TypeScript and test tools are development dependencies. The layering, deadlines and error model follow [homebridge-aqua-temp](https://github.com/deanvanniekerk/homebridge-aqua-temp); command safety follows [homebridge-centsys](https://github.com/deanvanniekerk/homebridge-centsys).
+The plugin's only runtime dependency is `@homebridge/plugin-ui-utils` for the settings page, as in homebridge-centsys. Homebridge supplies HAP; TypeScript and test tools are development dependencies. The layering, deadlines and error model follow [homebridge-aqua-temp](https://github.com/deanvanniekerk/homebridge-aqua-temp); command safety follows [homebridge-centsys](https://github.com/deanvanniekerk/homebridge-centsys).
 
 | Module                                                  | Responsibility                                                               |
 | ------------------------------------------------------- | ---------------------------------------------------------------------------- |
@@ -25,7 +25,7 @@ The vendor origin is `https://www.riscocloud.com`, the RISCO Cloud mobile API us
 
 Replies are `{ status, errorText, result, response }`. Success requires `status` 200 and a zero or absent `result`. Status 401 means invalid credentials before a token exists and session expiry afterwards. Result 72 means the cloud timed out waiting for the panel; other non-zero results are vendor rejections. Vendor text is never surfaced.
 
-Requests have a 15-second deadline, 64 KiB request and 1 MiB response limits, TLS verification and no redirects. Reads have a 45-second budget; a panel timeout falls back once to `fromControlPanel: false` (cloud-cached state, marked `source: "cloud"`), then at most two transient retries. Session expiry renews the whole login once. Login is shared across callers.
+Requests have a 15-second deadline, 64 KiB request and 1 MiB response limits, TLS verification and no redirects. Reads have a 45-second budget. A live panel read that returns result 72 or exceeds the request deadline falls back once, immediately, to `fromControlPanel: false` (cloud-cached state, marked `source: "cloud"`), then at most two transient retries. Vendor result codes are kept as integers for diagnostics. Session expiry renews the whole login once. Login is shared across callers.
 
 Invalid credentials, a rejected site selection and **any definite rejection of the PIN stage** pause traffic until restart: panels lock their keypad after repeated wrong codes, so the plugin never loops on a PIN. Transient failures back off from 5 seconds to 5 minutes with jitter and honor Retry-After. Repeated session invalidation enters a five-minute cooldown. Commands are never replayed; a dispatched failure is marked delivery-uncertain.
 

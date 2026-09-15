@@ -24,7 +24,7 @@ test('parses explicit options and zone overrides', () => {
     partialArmMode: 'night',
     zones: [
       { id: 3, type: 'hidden' },
-      { id: 4, type: 'motion' },
+      { id: 4, name: 'Hall PIR', type: 'motion' },
     ],
   });
   assert.equal(config.siteId, 42);
@@ -48,6 +48,7 @@ test('rejects invalid fields without echoing values', () => {
     [{ partialArmMode: 'away' }, 'partialArmMode'],
     [{ enableControl: 'yes' }, 'enableControl'],
     [{ zones: [{ id: 1, type: 'door' }] }, 'zones'],
+    [{ zones: [{ id: 1, name: 7, type: 'motion' }] }, 'zones'],
     [
       {
         zones: [

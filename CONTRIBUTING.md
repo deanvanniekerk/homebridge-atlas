@@ -23,7 +23,7 @@ Keep Homebridge presentation separate from transport, panel decoding and site sc
 
 Add a regression at the boundary that owns the behavior. Prefer the real client/HAP code against local fakes over mocks that only assert their own calls. Keep fixtures small, sanitized and labeled as observed or synthetic.
 
-Keep runtime dependencies minimal. The current plugin has none. Do not copy another integration's implementation, tests or assets; public integrations may inform the wire contract only. Contributions are licensed under the repository's MIT license.
+Keep runtime dependencies minimal. The only one is `@homebridge/plugin-ui-utils`, for the settings page. Do not copy another integration's implementation, tests or assets; public integrations may inform the wire contract only. Contributions are licensed under the repository's MIT license.
 
 ## Pull requests
 

@@ -23,11 +23,11 @@ sha256sum homebridge-atlas-0.1.0-alpha.0.tgz
 npm install --omit=dev --ignore-scripts --no-audit --no-fund ./homebridge-atlas-0.1.0-alpha.0.tgz
 ```
 
-The plugin has no runtime dependencies, so no native build runs on the host.
+npm fetches the one runtime dependency (`@homebridge/plugin-ui-utils`); nothing is compiled on the host.
 
 ## Configure and pair
 
-1. Enter the Atlas app credentials and panel user code in Plugin Config. Leave **Enable arming and disarming** off for the first run and turn on **Debug diagnostics**. See [configuration](CONFIGURATION.md).
+1. Open the plugin **Settings**, enter the Atlas app credentials and panel user code, click **Load detectors** and choose which detectors to show and their types. Leave arming and disarming off for the first run and turn on debug diagnostics. See [configuration](CONFIGURATION.md).
 2. Enable a dedicated child bridge for the plugin and restart it.
 3. Check the child bridge log for `Diagnostic report:` and confirm the partition and zone states match the Atlas app.
 4. In Apple Home, add the child bridge using its QR code and assign rooms.

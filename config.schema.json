@@ -2,6 +2,7 @@
   "pluginAlias": "Atlas",
   "pluginType": "platform",
   "singular": true,
+  "customUi": true,
   "headerDisplay": "Monitor Atlas Home Security (RISCO Cloud) detectors and, optionally, arm and disarm from Apple Home. Credentials remain in your Homebridge configuration.",
   "schema": {
     "type": "object",
@@ -85,7 +86,7 @@
       },
       "zones": {
         "title": "Zone overrides",
-        "description": "Zone names containing PIR, motion, beam, curtain or detector become motion sensors; others become contact sensors. Override or hide zones by ID.",
+        "description": "Managed by the settings page: every discovered zone with its sensor type, or hidden. Zones not listed use name-based defaults.",
         "type": "array",
         "maxItems": 256,
         "items": {
@@ -96,6 +97,11 @@
               "title": "Zone ID",
               "type": "integer",
               "minimum": 0
+            },
+            "name": {
+              "title": "Zone name",
+              "type": "string",
+              "maxLength": 64
             },
             "type": {
               "title": "Type",
