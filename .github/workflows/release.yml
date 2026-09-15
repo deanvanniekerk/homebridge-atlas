@@ -1,0 +1,98 @@
+name: Publish npm release
+
+on:
+  workflow_dispatch:
+    inputs:
+      approved_version:
+        description: 'Exact version approved for publication (for example 1.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-release
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    if: github.ref == 'refs/heads/main' && vars.NPM_PUBLISH_ENABLED == 'true'
+    needs: checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: npm
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22.23.2'
+          package-manager-cache: false
+      - run: npm install --global npm@11.5.1
+      - run: npm ci --no-audit --no-fund
+      - name: Check release decision
+        run: node scripts/check-release.mjs
+        env:
+          ATLAS_RELEASE_APPROVED: ${{ inputs.approved_version }}
+      - name: Record release metadata
+        id: metadata
+        run: |
+          node -e 'const p = require("./package.json"); console.log("version=" + p.version)' >> "$GITHUB_OUTPUT"
+      - name: Build the release artifact
+        run: npm pack --pack-destination /tmp
+      - name: Publish using npm trusted publishing
+        run: |
+          archive=$(node --input-type=module -e "import fs from 'node:fs'; const p=JSON.parse(fs.readFileSync('package.json')); console.log('/tmp/'+p.name.replace('@','').replace('/','-')+'-'+p.version+'.tgz')")
+          tag=$(node -p "require('./package.json').publishConfig.tag")
+          npm publish "$archive" --ignore-scripts --access public --tag "$tag" --provenance
+
+  github-release:
+    if: github.ref == 'refs/heads/main' && vars.NPM_PUBLISH_ENABLED == 'true'
+    needs: publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Prepare release notes
+        run: node scripts/release-notes.mjs "$RELEASE_VERSION" > "$RUNNER_TEMP/release-notes.md"
+        env:
+          RELEASE_VERSION: ${{ needs.publish.outputs.version }}
+      - name: Create GitHub release
+        run: |
+          release_tag="v${RELEASE_VERSION}"
+          existing_target=$(gh release view "$release_tag" --json targetCommitish --jq .targetCommitish 2>/dev/null || true)
+          if [[ -n "$existing_target" ]]; then
+            if [[ "$existing_target" != "$GITHUB_SHA" ]]; then
+              echo "Release $release_tag already targets $existing_target, not $GITHUB_SHA." >&2
+              exit 1
+            fi
+            echo "Release $release_tag already exists for this commit."
+            exit 0
+          fi
+          release_args=()
+          if [[ "$RELEASE_VERSION" == *-* ]]; then
+            release_args+=(--prerelease)
+          fi
+          gh release create "$release_tag" \
+            --target "$GITHUB_SHA" \
+            --title "homebridge-atlas $RELEASE_VERSION" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" \
+            "${release_args[@]}"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ needs.publish.outputs.version }}

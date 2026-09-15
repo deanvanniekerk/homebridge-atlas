@@ -15,6 +15,7 @@ import {
   type SensorKind,
 } from './configuration.js';
 import { SiteCoordinator, type SiteSnapshot } from './coordinator.js';
+import { Diagnostics } from './diagnostics.js';
 import { AtlasGateway } from './gateway.js';
 import { SecuritySystem } from './security-system.js';
 import { PLATFORM_NAME, PLUGIN_NAME, pluginVersion } from './settings.js';
@@ -69,6 +70,7 @@ export class AtlasPlatform implements DynamicPlatformPlugin {
   readonly #shutdown = new AbortController();
   readonly #config: AtlasConfig | undefined;
   readonly #coordinator: SiteCoordinator | undefined;
+  readonly #diagnostics: Diagnostics | undefined;
   #started = false;
   #logged: { signature: string; fault: boolean } | undefined;
   #warnedRejected = false;
@@ -84,17 +86,28 @@ export class AtlasPlatform implements DynamicPlatformPlugin {
     });
     try {
       this.#config = parseConfig(config);
-      this.#coordinator = new SiteCoordinator(
-        new AtlasGateway(
-          new RiscoClient({
-            username: this.#config.username,
-            password: this.#config.password,
-            pin: this.#config.pin,
-            ...(this.#config.siteId === undefined ? {} : { siteId: this.#config.siteId }),
-          }),
-        ),
-        { intervalMs: this.#config.pollInterval * 1000 },
+      const gateway = new AtlasGateway(
+        new RiscoClient({
+          username: this.#config.username,
+          password: this.#config.password,
+          pin: this.#config.pin,
+          ...(this.#config.siteId === undefined ? {} : { siteId: this.#config.siteId }),
+        }),
       );
+      this.#diagnostics = new Diagnostics(
+        (message) => {
+          log.info(message);
+        },
+        {
+          pluginVersion: pluginVersion(),
+          homebridgeVersion: api.serverVersion,
+          debug: this.#config.debug,
+          rejectedShape: () => gateway.rejectedShape(),
+        },
+      );
+      this.#coordinator = new SiteCoordinator(gateway, {
+        intervalMs: this.#config.pollInterval * 1000,
+      });
     } catch (error) {
       const message =
         error instanceof ConfigurationError ? error.message : 'Unable to initialize the platform.';
@@ -169,6 +182,7 @@ export class AtlasPlatform implements DynamicPlatformPlugin {
 
   private synchronize(snapshot: SiteSnapshot): void {
     this.report(snapshot);
+    this.#diagnostics?.observe(snapshot);
     const panel = snapshot.panel;
     if (!panel) {
       for (const entry of this.#accessories.values()) entry.presentation.update();

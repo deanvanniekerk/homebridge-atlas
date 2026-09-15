@@ -1,6 +1,6 @@
 {
   "name": "homebridge-atlas",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "private": true,
   "description": "Atlas Home Security (RISCO Cloud) detector state and arming for Homebridge",
   "type": "module",
@@ -26,8 +26,13 @@
     "dist/*.js",
     "config.schema.json",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE",
-    "docs/ARCHITECTURE.md"
+    "docs/ARCHITECTURE.md",
+    "docs/CONFIGURATION.md",
+    "docs/INSTALLATION.md",
+    "docs/VALIDATION.md",
+    "docs/RELEASING.md"
   ],
   "scripts": {
     "build": "node scripts/build.mjs",
@@ -37,7 +42,9 @@
     "format:check": "prettier --check .",
     "test": "npm run build && node --test --test-concurrency=1 test/*.test.mjs",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
-    "diagnose": "npm run build && node dist/diagnose.js"
+    "diagnose": "npm run build && node dist/diagnose.js",
+    "prepack": "npm run build",
+    "prepublishOnly": "node scripts/check-release.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
@@ -52,5 +59,10 @@
   "homepage": "https://github.com/deanvanniekerk/homebridge-atlas#readme",
   "bugs": {
     "url": "https://github.com/deanvanniekerk/homebridge-atlas/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "alpha",
+    "registry": "https://registry.npmjs.org/"
   }
 }

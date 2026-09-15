@@ -1,5 +1,6 @@
 import { CloudError, isRecord } from './cloud-error.js';
 import type { ArmTarget } from './cloud-protocol.js';
+import { fieldNames } from './shape.js';
 
 export type Reading<T> =
   | { readonly available: true; readonly value: T }
@@ -23,6 +24,21 @@ export interface ZoneState {
   readonly condition: Reading<ZoneCondition>;
 }
 
+/** Vendor structure seen in the latest reply: field names and enumerated value counts only. */
+export interface PanelEvidence {
+  readonly stateKeys: readonly string[];
+  readonly statusKeys: readonly string[];
+  readonly partitionFields: readonly string[];
+  readonly zoneFields: readonly string[];
+  readonly armedStates: Readonly<Record<string, number>>;
+  readonly alarmStates: Readonly<Record<string, number>>;
+  readonly zoneStatuses: Readonly<Record<string, number>>;
+  readonly zoneTypes: Readonly<Record<string, number>>;
+  readonly zoneTroubles: Readonly<Record<string, number>>;
+  readonly partitionReadyStates: Readonly<Record<string, number>>;
+  readonly online: Readonly<Record<string, number>>;
+}
+
 export interface PanelState {
   readonly siteId: number;
   /** `cloud` means the control panel did not answer and the cloud served its cached state. */
@@ -32,6 +48,7 @@ export interface PanelState {
   readonly zones: readonly ZoneState[];
   /** Records dropped because their identity was missing, invalid or duplicated. */
   readonly rejectedRecords: number;
+  readonly evidence: PanelEvidence;
 }
 
 const maximumRecords = 1000;
@@ -97,6 +114,26 @@ function unique<T extends { id: number }>(
   return { values, rejected };
 }
 
+function fieldUnion(items: unknown[]): string[] {
+  return [...new Set(items.flatMap(fieldNames))].sort().slice(0, 64);
+}
+
+/** Counts numbers/booleans by value and anything else by type, never echoing text. */
+function histogram(items: unknown[], field: string): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const item of items) {
+    const raw = isRecord(item) ? item[field] : undefined;
+    const key =
+      (typeof raw === 'number' && Number.isFinite(raw)) || typeof raw === 'boolean'
+        ? String(raw)
+        : raw === null
+          ? 'null'
+          : typeof raw;
+    if (key in counts || Object.keys(counts).length < 32) counts[key] = (counts[key] ?? 0) + 1;
+  }
+  return counts;
+}
+
 /** Decodes `ControlPanel/GetState` → `response.state.status`. */
 export function decodePanelState(
   value: unknown,
@@ -104,7 +141,9 @@ export function decodePanelState(
 ): PanelState {
   const status = isRecord(value) && isRecord(value.state) ? value.state.status : undefined;
   if (!isRecord(status)) throw new CloudError('invalid-response');
-  const partitions = unique(records(status.partitions), (row) =>
+  const partitionRecords = records(status.partitions);
+  const zoneRecords = records(status.zones);
+  const partitions = unique(partitionRecords, (row) =>
     identifier(row.id)
       ? {
           id: row.id,
@@ -114,7 +153,7 @@ export function decodePanelState(
         }
       : undefined,
   );
-  const zones = unique(records(status.zones), (row) =>
+  const zones = unique(zoneRecords, (row) =>
     identifier(row.zoneID)
       ? {
           id: row.zoneID,
@@ -134,5 +173,18 @@ export function decodePanelState(
     partitions: Object.freeze(partitions.values),
     zones: Object.freeze(zones.values),
     rejectedRecords: partitions.rejected + zones.rejected,
+    evidence: Object.freeze({
+      stateKeys: fieldNames(isRecord(value) ? value.state : undefined),
+      statusKeys: fieldNames(status),
+      partitionFields: fieldUnion(partitionRecords),
+      zoneFields: fieldUnion(zoneRecords),
+      armedStates: histogram(partitionRecords, 'armedState'),
+      alarmStates: histogram(partitionRecords, 'alarmState'),
+      zoneStatuses: histogram(zoneRecords, 'status'),
+      zoneTypes: histogram(zoneRecords, 'zoneType'),
+      zoneTroubles: histogram(zoneRecords, 'trouble'),
+      partitionReadyStates: histogram(partitionRecords, 'readyState'),
+      online: histogram(isRecord(value) ? [value.state] : [], 'isOnline'),
+    }),
   });
 }

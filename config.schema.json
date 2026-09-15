@@ -51,6 +51,12 @@
         "maximum": 300,
         "default": 30
       },
+      "debug": {
+        "title": "Debug diagnostics",
+        "description": "Write a sanitized diagnostic report (states, counts and vendor field names; no zone names or credentials) to the Homebridge log at most once every five minutes. Search the log for “Diagnostic report”.",
+        "type": "boolean",
+        "default": false
+      },
       "enableControl": {
         "title": "Enable arming and disarming",
         "description": "Off by default. When off, the security system is read-only in Apple Home.",
@@ -62,8 +68,14 @@
         "type": "string",
         "default": "stay",
         "oneOf": [
-          { "title": "Home (Stay)", "enum": ["stay"] },
-          { "title": "Night", "enum": ["night"] }
+          {
+            "title": "Home (Stay)",
+            "enum": ["stay"]
+          },
+          {
+            "title": "Night",
+            "enum": ["night"]
+          }
         ]
       },
       "includeZones": {
@@ -80,7 +92,11 @@
           "type": "object",
           "required": ["id", "type"],
           "properties": {
-            "id": { "title": "Zone ID", "type": "integer", "minimum": 0 },
+            "id": {
+              "title": "Zone ID",
+              "type": "integer",
+              "minimum": 0
+            },
             "type": {
               "title": "Type",
               "type": "string",
