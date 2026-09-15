@@ -2,6 +2,14 @@
 
 Release notes for `homebridge-atlas` live here. The release workflow publishes the section matching `package.json` to GitHub, so the npm package, tag and GitHub release all use the same version and notes.
 
+## [0.1.0-alpha.2] - 2026-09-15
+
+### Added
+
+- Push updates (default): listen to the RISCO Cloud event stream and refresh on change, reading the cloud's cached state and asking the panel only when the cache is older. Polling drops to a five-minute safety net while connected and resumes at the configured interval when the stream is unavailable.
+- `updates` option (`push` or `poll`) in configuration and the settings page.
+- Push connection, update latency and event counts in the diagnostic report.
+
 ## [0.1.0-alpha.1] - 2026-09-15
 
 ### Added

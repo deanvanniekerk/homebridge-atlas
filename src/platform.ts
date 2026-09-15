@@ -74,6 +74,7 @@ export class AtlasPlatform implements DynamicPlatformPlugin {
   #started = false;
   #logged: { signature: string; fault: boolean } | undefined;
   #warnedRejected = false;
+  #pushAnnounced = false;
 
   constructor(log: Logger, config: PlatformConfig, api: API) {
     this.#api = api;
@@ -104,10 +105,12 @@ export class AtlasPlatform implements DynamicPlatformPlugin {
           debug: this.#config.debug,
           rejectedShape: () => gateway.rejectedShape(),
           readStats: () => gateway.readStats(),
+          eventStats: () => gateway.eventStats(),
         },
       );
       this.#coordinator = new SiteCoordinator(gateway, {
         intervalMs: this.#config.pollInterval * 1000,
+        push: this.#config.updates === 'push',
       });
     } catch (error) {
       const message =
@@ -154,9 +157,9 @@ export class AtlasPlatform implements DynamicPlatformPlugin {
       if (!this.#coordinator) return;
       this.#coordinator.start();
       this.#log.info(
-        `Atlas monitoring started (plugin ${pluginVersion()}); arming and disarming ${
-          this.#config?.enableControl ? 'enabled' : 'disabled'
-        }.`,
+        `Atlas monitoring started (plugin ${pluginVersion()}); ${
+          this.#config?.updates === 'poll' ? 'polling' : 'push updates with polling fallback'
+        }; arming and disarming ${this.#config?.enableControl ? 'enabled' : 'disabled'}.`,
       );
       for await (const snapshot of this.#coordinator.updates(this.#shutdown.signal))
         this.synchronize(snapshot);
@@ -267,6 +270,10 @@ export class AtlasPlatform implements DynamicPlatformPlugin {
   }
 
   private report(snapshot: SiteSnapshot): void {
+    if (snapshot.stream.connected && !this.#pushAnnounced) {
+      this.#pushAnnounced = true;
+      this.#log.info('Push updates connected.');
+    }
     if (snapshot.panel && snapshot.panel.rejectedRecords > 0 && !this.#warnedRejected) {
       this.#warnedRejected = true;
       this.#log.warn(

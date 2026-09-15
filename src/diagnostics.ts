@@ -6,7 +6,14 @@ interface DiagnosticOptions {
   /** Values-free structure of a reply that failed to decode, when available. */
   rejectedShape?: () => unknown;
   /** Successful reads by source and the latest read duration. */
-  readStats?: () => { panel: number; cloud: number; lastDurationMs: number | null };
+  readStats?: () => {
+    panel: number;
+    cloud: number;
+    escalations?: number;
+    lastDurationMs: number | null;
+  };
+  /** Push stream message counts by event name. */
+  eventStats?: () => Record<string, number>;
   now?: () => number;
   pluginVersion: string;
   homebridgeVersion: string;
@@ -58,6 +65,7 @@ export class Diagnostics {
   readonly #debug: boolean;
   readonly #rejectedShape: (() => unknown) | undefined;
   readonly #readStats: DiagnosticOptions['readStats'];
+  readonly #eventStats: DiagnosticOptions['eventStats'];
   #lastReportMs = -Infinity;
 
   constructor(write: (message: string) => void, options: DiagnosticOptions) {
@@ -65,6 +73,7 @@ export class Diagnostics {
     this.#debug = options.debug === true;
     this.#rejectedShape = options.rejectedShape;
     this.#readStats = options.readStats;
+    this.#eventStats = options.eventStats;
     this.#now = options.now ?? (() => systemScheduler.now());
     this.#runtime = Object.freeze({
       plugin: version(options.pluginVersion),
@@ -93,6 +102,18 @@ export class Diagnostics {
         retryInMs: elapsed(snapshot.retryAtMs, now),
         pendingTargets: Object.fromEntries(snapshot.targets),
         reads: this.#readStats?.() ?? null,
+      },
+      stream: {
+        mode: snapshot.stream.mode,
+        connected: snapshot.stream.connected,
+        connects: snapshot.stream.connects,
+        disconnects: snapshot.stream.disconnects,
+        updates: snapshot.stream.updates,
+        lastUpdateAgeMs: elapsed(now, snapshot.stream.lastUpdateMs),
+        lastUpdateLatencyMs: snapshot.stream.lastUpdateLatencyMs ?? null,
+        lastFailure: snapshot.stream.lastFailure ?? null,
+        offline: snapshot.stream.offline ?? null,
+        events: this.#eventStats?.() ?? null,
       },
       panel: snapshot.panel ? panelReport(snapshot.panel) : null,
       rejectedShape:

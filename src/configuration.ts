@@ -10,6 +10,8 @@ export interface AtlasConfig {
   readonly pin: string;
   readonly siteId: number | undefined;
   readonly pollInterval: number;
+  /** `push` listens for RISCO Cloud change notifications and polls only as a safety net. */
+  readonly updates: 'push' | 'poll';
   readonly debug: boolean;
   readonly enableControl: boolean;
   readonly partialArmMode: 'stay' | 'night';
@@ -25,6 +27,7 @@ type Field =
   | 'pin'
   | 'siteId'
   | 'pollInterval'
+  | 'updates'
   | 'debug'
   | 'enableControl'
   | 'partialArmMode'
@@ -38,6 +41,7 @@ const messages: Record<Field, string> = {
   pin: 'Enter the panel user code (PIN) as 4–8 digits.',
   siteId: 'Site ID must be a whole number when set.',
   pollInterval: 'Poll interval must be a whole number from 10 to 300 seconds.',
+  updates: 'Updates must be "push" or "poll".',
   debug: 'Debug must be true or false.',
   enableControl: 'Enable arming and disarming must be true or false.',
   partialArmMode: 'Partial arm mode must be "stay" or "night".',
@@ -114,6 +118,8 @@ export function parseConfig(input: unknown): AtlasConfig {
     pollInterval > 300
   )
     throw new ConfigurationError('pollInterval');
+  const updates: unknown = input.updates === undefined ? 'push' : input.updates;
+  if (updates !== 'push' && updates !== 'poll') throw new ConfigurationError('updates');
   const partialArmMode: unknown =
     input.partialArmMode === undefined ? 'stay' : input.partialArmMode;
   if (partialArmMode !== 'stay' && partialArmMode !== 'night')
@@ -125,6 +131,7 @@ export function parseConfig(input: unknown): AtlasConfig {
     pin: input.pin,
     siteId: input.siteId as number | undefined,
     pollInterval,
+    updates,
     debug: optionalBoolean(input.debug, false, 'debug'),
     enableControl: optionalBoolean(input.enableControl, false, 'enableControl'),
     partialArmMode,

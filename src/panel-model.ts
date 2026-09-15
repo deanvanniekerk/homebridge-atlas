@@ -1,5 +1,5 @@
 import { CloudError, isRecord } from './cloud-error.js';
-import type { ArmTarget } from './cloud-protocol.js';
+import { vendorTime, type ArmTarget } from './cloud-protocol.js';
 import { fieldNames } from './shape.js';
 
 export type Reading<T> =
@@ -37,6 +37,8 @@ export interface PanelEvidence {
   readonly zoneTroubles: Readonly<Record<string, number>>;
   readonly partitionReadyStates: Readonly<Record<string, number>>;
   readonly online: Readonly<Record<string, number>>;
+  /** Shape of `state.lastStatusUpdate`, e.g. `iso-utc`, `iso-offset`, `iso-naive`, `missing`. */
+  readonly statusTimestamp: string;
 }
 
 export interface PanelState {
@@ -44,6 +46,8 @@ export interface PanelState {
   /** `cloud` means the control panel did not answer and the cloud served its cached state. */
   readonly source: 'panel' | 'cloud';
   readonly observedAtMs: number;
+  /** Cloud `lastStatusUpdate`, used to check that a cached read reflects a pushed change. */
+  readonly statusUpdatedAtMs: number | undefined;
   readonly partitions: readonly PartitionState[];
   readonly zones: readonly ZoneState[];
   /** Records dropped because their identity was missing, invalid or duplicated. */
@@ -134,6 +138,15 @@ function histogram(items: unknown[], field: string): Record<string, number> {
   return counts;
 }
 
+function timestampShape(value: unknown): string {
+  if (value === undefined || value === null) return 'missing';
+  if (typeof value !== 'string') return typeof value;
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) return 'other';
+  if (/[zZ]$/.test(value)) return 'iso-utc';
+  if (/[+-]\d{2}:?\d{2}$/.test(value)) return 'iso-offset';
+  return 'iso-naive';
+}
+
 /** Decodes `ControlPanel/GetState` → `response.state.status`. */
 export function decodePanelState(
   value: unknown,
@@ -170,6 +183,9 @@ export function decodePanelState(
     siteId: context.siteId,
     source: context.fromControlPanel ? 'panel' : 'cloud',
     observedAtMs: context.observedAtMs,
+    statusUpdatedAtMs: vendorTime(
+      isRecord(value) && isRecord(value.state) ? value.state.lastStatusUpdate : undefined,
+    ),
     partitions: Object.freeze(partitions.values),
     zones: Object.freeze(zones.values),
     rejectedRecords: partitions.rejected + zones.rejected,
@@ -185,6 +201,9 @@ export function decodePanelState(
       zoneTroubles: histogram(zoneRecords, 'trouble'),
       partitionReadyStates: histogram(partitionRecords, 'readyState'),
       online: histogram(isRecord(value) ? [value.state] : [], 'isOnline'),
+      statusTimestamp: timestampShape(
+        isRecord(value) && isRecord(value.state) ? value.state.lastStatusUpdate : undefined,
+      ),
     }),
   });
 }

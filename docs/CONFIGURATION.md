@@ -17,6 +17,7 @@ Click **Save**, then restart the Atlas child bridge. Loading detectors opens its
   "username": "you@example.com",
   "password": "your-password",
   "pin": "1234",
+  "updates": "push",
   "pollInterval": 30,
   "debug": false,
   "enableControl": false,
@@ -26,18 +27,19 @@ Click **Save**, then restart the Atlas child bridge. Loading detectors opens its
 }
 ```
 
-| Option                 | Default  | Meaning                                                                            |
-| ---------------------- | -------- | ---------------------------------------------------------------------------------- |
-| `name`                 | Atlas    | Security System display name; 1–64 characters                                      |
-| `username`, `password` | Required | The credentials you use in the Atlas app, stored in local Homebridge configuration |
-| `pin`                  | Required | Panel user code (4–8 digits) used to open the RISCO Cloud panel session            |
-| `siteId`               | —        | Only needed when the account sees more than one site                               |
-| `pollInterval`         | `30`     | Seconds between completed polls; whole number 10–300                               |
-| `debug`                | `false`  | Emit sanitized diagnostic reports                                                  |
-| `enableControl`        | `false`  | Allow arming and disarming from Apple Home                                         |
-| `partialArmMode`       | `stay`   | Show partial arm as Home (`stay`) or Night (`night`)                               |
-| `includeZones`         | `true`   | Add a sensor per zone                                                              |
-| `zones`                | `[]`     | Per-zone overrides: `{ "id": 12, "type": "motion" \| "contact" \| "hidden" }`      |
+| Option                 | Default  | Meaning                                                                                                               |
+| ---------------------- | -------- | --------------------------------------------------------------------------------------------------------------------- |
+| `name`                 | Atlas    | Security System display name; 1–64 characters                                                                         |
+| `username`, `password` | Required | The credentials you use in the Atlas app, stored in local Homebridge configuration                                    |
+| `pin`                  | Required | Panel user code (4–8 digits) used to open the RISCO Cloud panel session                                               |
+| `siteId`               | —        | Only needed when the account sees more than one site                                                                  |
+| `updates`              | `push`   | `push` listens for RISCO Cloud changes and polls every 5 minutes as a safety net; `poll` only polls                   |
+| `pollInterval`         | `30`     | Seconds between completed polls when polling, or while push is unavailable; 10–300                                    |
+| `debug`                | `false`  | Emit sanitized diagnostic reports                                                                                     |
+| `enableControl`        | `false`  | Allow arming and disarming from Apple Home                                                                            |
+| `partialArmMode`       | `stay`   | Show partial arm as Home (`stay`) or Night (`night`)                                                                  |
+| `includeZones`         | `true`   | Add a sensor per zone                                                                                                 |
+| `zones`                | `[]`     | Per-zone choices written by the settings page: `{ "id": 12, "name": "…", "type": "motion" \| "contact" \| "hidden" }` |
 
 ## Zones
 

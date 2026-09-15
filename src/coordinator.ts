@@ -1,11 +1,18 @@
 import { CloudError, type CloudErrorCategory } from './cloud-error.js';
+import type { RuntimeUpdate } from './cloud-events.js';
 import type { ArmState, PanelState, PartitionState, ZoneState } from './panel-model.js';
 import { bounded, systemScheduler, type Scheduler } from './scheduler.js';
 
 export interface PanelGateway {
   /** Resource-owning gateways close their client, including shared authentication. */
   close?(): void;
-  read(signal: AbortSignal): Promise<PanelState>;
+  /** `notBefore` asks for state at least as new as a pushed `LastStatusUpdate`. */
+  read(signal: AbortSignal, options?: { notBefore?: number }): Promise<PanelState>;
+  /** Hold a push stream open until it ends; optional, polling works without it. */
+  watch?(
+    signal: AbortSignal,
+    handlers: { onOpen: () => void; onUpdate: (update: RuntimeUpdate) => void },
+  ): Promise<void>;
   /** Transport acceptance only. Polling must confirm the partition state. */
   arm(partitionId: number, target: ArmState, signal: AbortSignal): Promise<void>;
 }
@@ -36,11 +43,32 @@ export interface SiteSnapshot {
   readonly retryAtMs: number;
   /** Requested arm states awaiting confirmation, by partition id. */
   readonly targets: ReadonlyMap<number, ArmState>;
+  readonly stream: StreamStatus;
+}
+
+export interface StreamStatus {
+  readonly mode: 'push' | 'poll';
+  readonly connected: boolean;
+  readonly connects: number;
+  readonly disconnects: number;
+  readonly updates: number;
+  readonly lastUpdateMs: number | undefined;
+  /** From receiving a pushed change to applying fresh state. */
+  readonly lastUpdateLatencyMs: number | undefined;
+  readonly lastFailure: CloudErrorCategory | undefined;
+  /** Latest `IsOffline` pushed by the cloud. */
+  readonly offline: boolean | undefined;
 }
 
 const commandBudgetMs = 20_000;
 const confirmIntervalMs = 3000;
 const confirmWindowMs = 120_000;
+/** While the push stream is connected, polling is only a safety net. */
+const safetyIntervalMs = 300_000;
+const minimumRefreshGapMs = 1000;
+const reconnectMaximumMs = 300_000;
+/** A connection that lasted this long resets the reconnect backoff. */
+const stableConnectionMs = 60_000;
 
 interface Pending {
   target: ArmState;
@@ -49,7 +77,10 @@ interface Pending {
   cancelExpiry: () => void;
 }
 
-/** One RISCO site: non-overlapping polls, freshness, a single active command and confirmation. */
+/**
+ * One RISCO site: non-overlapping polls, optional push-triggered refreshes, freshness, a single
+ * active command and confirmation.
+ */
 export class SiteCoordinator {
   readonly #gateway: PanelGateway;
   readonly #scheduler: Scheduler;
@@ -69,11 +100,34 @@ export class SiteCoordinator {
   #commandActive = false;
   #cancelPoll: (() => void) | undefined;
   #cancelFreshness: (() => void) | undefined;
+  readonly #push: boolean;
+  #stream: {
+    -readonly [K in keyof StreamStatus]: StreamStatus[K];
+  };
+  #notBefore: number | undefined;
+  #pushReceivedAt: number | undefined;
+  #lastPushedStatusMs = -Infinity;
+  #lastPollStartedAt = -Infinity;
 
-  constructor(gateway: PanelGateway, options: { scheduler?: Scheduler; intervalMs?: number } = {}) {
+  constructor(
+    gateway: PanelGateway,
+    options: { scheduler?: Scheduler; intervalMs?: number; push?: boolean } = {},
+  ) {
     this.#gateway = gateway;
     this.#scheduler = options.scheduler ?? systemScheduler;
     this.#intervalMs = options.intervalMs ?? 30_000;
+    this.#push = options.push === true && gateway.watch !== undefined;
+    this.#stream = {
+      mode: this.#push ? 'push' : 'poll',
+      connected: false,
+      connects: 0,
+      disconnects: 0,
+      updates: 0,
+      lastUpdateMs: undefined,
+      lastUpdateLatencyMs: undefined,
+      lastFailure: undefined,
+      offline: undefined,
+    };
     if (
       !Number.isFinite(this.#intervalMs) ||
       this.#intervalMs < 10_000 ||
@@ -86,6 +140,7 @@ export class SiteCoordinator {
     if (this.#started || this.#shutdown.signal.aborted) return;
     this.#started = true;
     void this.poll();
+    if (this.#push) void this.supervise();
   }
 
   close(): void {
@@ -103,7 +158,7 @@ export class SiteCoordinator {
   snapshot(): SiteSnapshot {
     const now = this.#scheduler.now();
     const fresh =
-      this.#lastSuccessMs !== undefined && now - this.#lastSuccessMs < 3 * this.#intervalMs;
+      this.#lastSuccessMs !== undefined && now - this.#lastSuccessMs < this.freshnessWindow();
     const status: SiteStatus =
       this.#failure === 'invalid-credentials' ||
       this.#failure === 'invalid-pin' ||
@@ -126,6 +181,7 @@ export class SiteCoordinator {
       failureCode: this.#failure === undefined ? undefined : this.#failureCode,
       retryAtMs: this.#retryAt,
       targets: new Map([...this.#pending].map(([id, pending]) => [id, pending.target])),
+      stream: Object.freeze({ ...this.#stream }),
     });
   }
 
@@ -228,12 +284,96 @@ export class SiteCoordinator {
     this.#refreshRequested = true;
     if (this.#polling) return;
     this.#cancelPoll?.();
-    this.#cancelPoll = this.#scheduler.after(
-      Math.max(0, this.#retryAt - this.#scheduler.now()),
-      () => {
-        void this.poll();
-      },
-    );
+    this.#cancelPoll = this.#scheduler.after(this.refreshDelay(), () => {
+      void this.poll();
+    });
+  }
+
+  private refreshDelay(): number {
+    const now = this.#scheduler.now();
+    return Math.max(0, this.#retryAt - now, this.#lastPollStartedAt + minimumRefreshGapMs - now);
+  }
+
+  /** Keep the push stream open; each reconnect backs off, and a stable connection resets it. */
+  private async supervise(): Promise<void> {
+    let failures = 0;
+    while (!this.stopped()) {
+      // Mutated by the stream callbacks; a holder keeps the flow analysis honest.
+      const connection: { openedAt: number | undefined; retryAfterMs: number } = {
+        openedAt: undefined,
+        retryAfterMs: 0,
+      };
+      try {
+        await this.#gateway.watch?.(this.#shutdown.signal, {
+          onOpen: () => {
+            if (this.stopped()) return;
+            connection.openedAt = this.#scheduler.now();
+            this.#stream.connected = true;
+            this.#stream.connects += 1;
+            this.#stream.lastFailure = undefined;
+            this.changed();
+            // State may have changed while disconnected; read it once the stream is listening.
+            this.refresh();
+          },
+          onUpdate: (update) => {
+            this.pushed(update);
+          },
+        });
+      } catch (error) {
+        if (!this.stopped()) {
+          this.#stream.lastFailure = error instanceof CloudError ? error.category : 'unavailable';
+          connection.retryAfterMs = error instanceof CloudError ? error.retryAfterMs : 0;
+        }
+      }
+      if (this.stopped()) return;
+      const { openedAt, retryAfterMs } = connection;
+      if (openedAt !== undefined) {
+        this.#stream.connected = false;
+        this.#stream.disconnects += 1;
+        this.changed();
+        this.refresh();
+      }
+      failures =
+        openedAt !== undefined && this.#scheduler.now() - openedAt >= stableConnectionMs
+          ? 1
+          : failures + 1;
+      const delay = Math.max(
+        retryAfterMs,
+        Math.min(reconnectMaximumMs, 1000 * 2 ** Math.min(failures - 1, 9)),
+      );
+      await new Promise<void>((resolve) => {
+        const done = () => {
+          cancel();
+          this.#shutdown.signal.removeEventListener('abort', done);
+          resolve();
+        };
+        const cancel = this.#scheduler.after(delay, done);
+        this.#shutdown.signal.addEventListener('abort', done, { once: true });
+      });
+    }
+  }
+
+  private stopped(): boolean {
+    return this.#shutdown.signal.aborted;
+  }
+
+  private pushed(update: RuntimeUpdate): void {
+    if (this.#shutdown.signal.aborted) return;
+    this.#stream.updates += 1;
+    this.#stream.lastUpdateMs = this.#scheduler.now();
+    if (update.offline !== undefined) this.#stream.offline = update.offline;
+    const status = update.statusUpdatedAtMs;
+    // Event-log-only notifications repeat an already-seen status time and need no read.
+    if (status !== undefined && status <= this.#lastPushedStatusMs) {
+      this.changed();
+      return;
+    }
+    if (status !== undefined) {
+      this.#lastPushedStatusMs = status;
+      this.#notBefore = Math.max(this.#notBefore ?? -Infinity, status);
+    }
+    this.#pushReceivedAt ??= this.#scheduler.now();
+    this.refresh();
   }
 
   private async poll(): Promise<void> {
@@ -241,13 +381,29 @@ export class SiteCoordinator {
     this.#refreshRequested = false;
     this.#retryAt = 0;
     const startedAt = this.#scheduler.now();
+    this.#lastPollStartedAt = startedAt;
+    // Command confirmation always asks the panel; pushed changes may use the cloud cache.
+    const notBefore = this.#pending.size === 0 ? this.#notBefore : undefined;
+    const pushReceivedAt = this.#pushReceivedAt;
     try {
       const panel = await bounded(this.#scheduler, 45_000, this.#shutdown.signal, (signal) =>
-        this.#gateway.read(signal),
+        notBefore === undefined
+          ? this.#gateway.read(signal)
+          : this.#gateway.read(signal, { notBefore }),
       );
       if (this.#shutdown.signal.aborted) return;
       this.#panel = panel;
       this.#lastSuccessMs = panel.observedAtMs;
+      if (
+        this.#notBefore !== undefined &&
+        (this.#notBefore === notBefore ||
+          (panel.statusUpdatedAtMs !== undefined && panel.statusUpdatedAtMs >= this.#notBefore))
+      )
+        this.#notBefore = undefined;
+      if (pushReceivedAt !== undefined && this.#pushReceivedAt === pushReceivedAt) {
+        this.#stream.lastUpdateLatencyMs = Math.max(0, this.#scheduler.now() - pushReceivedAt);
+        this.#pushReceivedAt = undefined;
+      }
       // An unconfirmed command stays reported until the next command, so it cannot be missed.
       if (this.#failure !== 'unconfirmed') this.#failure = undefined;
       for (const [id, pending] of this.#pending) {
@@ -276,12 +432,19 @@ export class SiteCoordinator {
   }
 
   private nextPollDelay(): number {
-    const base = this.#refreshRequested
-      ? 0
-      : this.#pending.size > 0
+    if (this.#refreshRequested) return this.refreshDelay();
+    const base =
+      this.#pending.size > 0
         ? confirmIntervalMs
-        : this.#intervalMs;
+        : this.#stream.connected
+          ? safetyIntervalMs
+          : this.#intervalMs;
     return Math.max(base, this.#retryAt - this.#scheduler.now());
+  }
+
+  /** Connected push keeps state fresh between safety polls; otherwise three poll intervals. */
+  private freshnessWindow(): number {
+    return this.#stream.connected ? safetyIntervalMs + this.#intervalMs : 3 * this.#intervalMs;
   }
 
   private changed(): void {
@@ -291,7 +454,7 @@ export class SiteCoordinator {
     this.#cancelFreshness?.();
     this.#cancelFreshness = undefined;
     if (this.#lastSuccessMs === undefined) return;
-    const expires = this.#lastSuccessMs + 3 * this.#intervalMs;
+    const expires = this.#lastSuccessMs + this.freshnessWindow();
     const now = this.#scheduler.now();
     if (expires > now)
       this.#cancelFreshness = this.#scheduler.after(expires - now, () => {

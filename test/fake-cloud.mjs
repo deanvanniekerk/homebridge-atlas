@@ -55,6 +55,11 @@ export function riscoRoutes(overrides = {}) {
         return reply(res, panel());
       case 'arm':
         return reply(res, success({}));
+      case 'events':
+        // Hold an idle stream open until the test server closes its connections.
+        res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+        res.write(': synthetic keep-alive\n\n');
+        return undefined;
       default:
         return reply(res, { status: 404, response: null }, 404);
     }
@@ -67,6 +72,7 @@ export function routeOf(path) {
   if (/^\/webapi\/api\/wuws\/site\/\d+\/Login$/.test(path)) return 'siteLogin';
   if (/\/ControlPanel\/GetState$/.test(path)) return 'state';
   if (/\/ControlPanel\/PartArm$/.test(path)) return 'arm';
+  if (/\/ControlPanel\/sse\/connect(\?|$)/.test(path)) return 'events';
   return 'unknown';
 }
 
@@ -75,11 +81,15 @@ export async function serverFor(t, handle) {
   const server = createServer(async (req, res) => {
     let body = '';
     for await (const chunk of req) body += chunk;
+    const url = new URL(req.url, 'http://127.0.0.1');
     const call = {
-      path: req.url,
-      route: routeOf(req.url),
+      method: req.method,
+      path: url.pathname,
+      query: Object.fromEntries(url.searchParams),
+      route: routeOf(url.pathname),
       authorization: req.headers.authorization,
-      body: JSON.parse(body),
+      sessionToken: req.headers.sessiontoken,
+      body: body ? JSON.parse(body) : undefined,
     };
     calls.push(call);
     await handle(call, res, calls);

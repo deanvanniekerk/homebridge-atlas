@@ -150,6 +150,7 @@ test('loads detectors, then records visibility and type for every zone while pre
     { id: 2, name: 'Arm Disarm', type: 'hidden' },
   ]);
   assert.deepEqual(saved._bridge, account._bridge);
+  assert.equal(saved.updates, 'push', 'push is the default update mode');
   assert.equal(p.element('zone-summary').textContent, '2 of 3 detectors shown in Apple Home.');
   assert.equal(p.saveButton.enabled, true);
 });

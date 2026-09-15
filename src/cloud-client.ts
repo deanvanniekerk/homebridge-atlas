@@ -1,3 +1,4 @@
+import { openStream, type StreamMessage } from './cloud-events.js';
 import { post } from './cloud-http.js';
 import { shapeOf } from './shape.js';
 import { CloudError } from './cloud-error.js';
@@ -143,7 +144,7 @@ export class RiscoClient {
    * by exceeding this client's request deadline, the read falls back once to the cloud's cached
    * state within the same budget instead of backing off.
    */
-  async state(options: { signal?: AbortSignal } = {}): Promise<StateResult> {
+  async state(options: { signal?: AbortSignal; preferCache?: boolean } = {}): Promise<StateResult> {
     this.checkAccess();
     const budget = new Budget(this.#readBudget, this.#clock, [
       this.#shutdown.signal,
@@ -153,7 +154,7 @@ export class RiscoClient {
       budget.check();
       await this.waitBackoff(budget);
       let session = await budget.wait(this.authenticate());
-      let fromControlPanel = true;
+      let fromControlPanel = options.preferCache !== true;
       let renewed = false;
       let retries = 0;
       for (;;) {
@@ -194,6 +195,46 @@ export class RiscoClient {
       }
     } finally {
       budget.dispose();
+    }
+  }
+
+  /**
+   * Hold the site's server-sent event stream open until it ends. Authentication is shared with
+   * reads; an expired session is invalidated so the next attempt signs in again. Reconnection
+   * policy belongs to the caller.
+   */
+  async events(
+    handlers: { onOpen: () => void; onMessage: (message: StreamMessage) => void },
+    options: { signal?: AbortSignal; idleTimeoutMs?: number } = {},
+  ): Promise<void> {
+    this.checkAccess();
+    const signals = [this.#shutdown.signal, ...(options.signal ? [options.signal] : [])];
+    const budget = new Budget(3 * this.#requestTimeout, this.#clock, signals);
+    let session: Session;
+    try {
+      await this.waitBackoff(budget);
+      session = await budget.wait(this.authenticate());
+    } finally {
+      budget.dispose();
+    }
+    this.checkAccess();
+    try {
+      await openStream({
+        origin: this.#origin,
+        path: paths.events(session.siteId),
+        token: session.token,
+        sessionId: session.sessionId,
+        signal: AbortSignal.any(signals),
+        connectTimeoutMs: this.#requestTimeout,
+        idleTimeoutMs: options.idleTimeoutMs ?? 300_000,
+        now: () => this.#clock.now(),
+        ...handlers,
+      });
+    } catch (error) {
+      this.pauseIfDenied(error, false);
+      if (error instanceof CloudError && error.category === 'session-expired')
+        this.invalidate(session);
+      throw error;
     }
   }
 

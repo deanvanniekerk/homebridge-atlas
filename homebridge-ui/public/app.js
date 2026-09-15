@@ -54,6 +54,7 @@
       debug: el('debug').checked,
       enableControl: el('enable-control').checked,
       partialArmMode: el('partial-arm-mode').value === 'night' ? 'night' : 'stay',
+      updates: el('updates').value === 'poll' ? 'poll' : 'push',
     };
     if (account.siteId === undefined) delete next.siteId;
     else next.siteId = account.siteId;
@@ -220,6 +221,7 @@
     el('debug').checked = block.debug === true;
     el('enable-control').checked = block.enableControl === true;
     el('partial-arm-mode').value = block.partialArmMode === 'night' ? 'night' : 'stay';
+    el('updates').value = block.updates === 'poll' ? 'poll' : 'push';
     zones = new Map();
     for (const saved of Array.isArray(block.zones) ? block.zones : []) {
       if (!Number.isSafeInteger(saved?.id)) continue;
@@ -233,7 +235,7 @@
     }
     renderZones();
     for (const id of fields) el(id).addEventListener('input', () => void sync());
-    for (const id of ['debug', 'enable-control', 'partial-arm-mode'])
+    for (const id of ['debug', 'enable-control', 'partial-arm-mode', 'updates'])
       el(id).addEventListener('change', () => void sync());
     el('site-select').addEventListener('change', () => {
       el('site-id').value = el('site-select').value;

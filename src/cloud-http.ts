@@ -103,7 +103,7 @@ function envelope(value: unknown, call: HttpCall): unknown {
   return value.response;
 }
 
-function categoryFor(status: number, authenticated: boolean): CloudErrorCategory {
+export function categoryFor(status: number, authenticated: boolean): CloudErrorCategory {
   if (status === 401) return authenticated ? 'session-expired' : 'invalid-credentials';
   if (status === 403) return 'permission-denied';
   if (status === 429) return 'rate-limited';
@@ -111,7 +111,7 @@ function categoryFor(status: number, authenticated: boolean): CloudErrorCategory
   return 'invalid-response';
 }
 
-function retryAfter(value: string | undefined, now: number): number {
+export function retryAfter(value: string | undefined, now: number): number {
   if (!value) return 0;
   const delay = /^\d+$/.test(value) ? Number(value) * 1000 : Date.parse(value) - now;
   return Number.isFinite(delay) && delay > 0 ? Math.min(delay, Number.MAX_SAFE_INTEGER) : 0;

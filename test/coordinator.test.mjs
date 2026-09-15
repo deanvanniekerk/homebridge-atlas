@@ -100,7 +100,8 @@ test('an accepted arm stays pending until a later poll confirms it, polling quic
   await h.coordinator.arm(0, 'armed');
   assert.deepEqual(h.arms, [[0, 'armed']]);
   assert.equal(h.coordinator.snapshot().targets.get(0), 'armed');
-  await h.scheduler.advance(0);
+  // Refreshes keep at least one second between poll starts.
+  await h.scheduler.advance(1000);
   const readsAfterCommand = h.reads.length;
   await h.scheduler.advance(3000);
   assert.equal(h.reads.length, readsAfterCommand + 1, 'confirmation polls every three seconds');

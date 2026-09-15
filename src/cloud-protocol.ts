@@ -28,6 +28,7 @@ export const paths = {
   siteLogin: (siteId: number) => `${prefix}wuws/site/${String(siteId)}/Login`,
   state: (siteId: number) => `${prefix}wuws/site/${String(siteId)}/ControlPanel/GetState`,
   arm: (siteId: number) => `${prefix}wuws/site/${String(siteId)}/ControlPanel/PartArm`,
+  events: (siteId: number) => `${prefix}wuws/site/${String(siteId)}/ControlPanel/sse/connect`,
 };
 
 export function originFor(value = vendorOrigin): string {
@@ -113,6 +114,14 @@ export function sessionIdFrom(value: unknown): string {
 
 export function siteLoginBody(pin: string): { languageId: string; pinCode: string } {
   return { languageId: 'en', pinCode: pin };
+}
+
+/** Vendor timestamps without a zone designator are UTC. Unparseable values are ignored. */
+export function vendorTime(value: unknown): number | undefined {
+  if (typeof value !== 'string' || value.length > 64) return undefined;
+  const text = /[zZ]|[+-]\d{2}:?\d{2}$/.test(value) ? value : `${value}Z`;
+  const time = Date.parse(text);
+  return Number.isFinite(time) ? time : undefined;
 }
 
 export function stateBody(
