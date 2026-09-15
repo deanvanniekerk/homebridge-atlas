@@ -1,33 +1,31 @@
 # homebridge-atlas
 
-A Homebridge plugin for **Atlas Home Security** (RISCO Cloud) alarm systems.
+A Homebridge plugin for **Atlas Home Security** and other RISCO Cloud alarm systems: partition arming, detector state, faults and push updates in Apple Home.
 
-> **Status: pre-alpha, not yet validated against a real account.** The transport, panel model, coordinator and accessories are implemented and tested against a synthetic cloud. Arming and disarming are off by default.
+Validated on one owner's panel through Homebridge 2.4.0 on an ARMv7 iHost. There, detector states, zone faults and push updates matched the Atlas app. A supervised test armed Home (partial), disarmed, and refused arming while a door was open. Full (Away) arming on real hardware is still pending. See [validation](docs/VALIDATION.md) and the [changelog](CHANGELOG.md).
 
 ## What it does
 
-- One **Security System** per partition: Disarmed, Home (or Night) for partial arm, Away for full arm, and Alarm Triggered.
-- One **motion or contact sensor** per zone (detector), with bypassed zones shown as inactive.
-- A settings page that loads your detectors so you can choose which appear in Apple Home and whether each is a motion or contact sensor.
-- Optional arming and disarming from Apple Home (`enableControl`).
+- **Security System** per partition: Disarmed, Home (or Night) for partial arm, Away for full arm, and Alarm Triggered.
+- **Motion or contact sensor** per detector. Bypassed detectors are shown as inactive, and a detector's trouble flag is shown as a fault.
+- **Push updates** from RISCO Cloud, with polling as a fallback.
+- **Settings page** that signs in, loads your detectors and lets you choose which appear in Apple Home and their sensor type.
+- **Optional arming and disarming**, off by default. Arming is refused while the panel reports it is not ready, and commands are refused while the panel is offline.
 
-It uses the RISCO Cloud mobile API that RISCO's apps use (the Atlas24 app is published under RISCO's package namespace), with the email, password and panel user code you use in the app.
+It uses the RISCO Cloud service that RISCO's apps use, with the email, password and panel user code you use in the Atlas app.
 
-## Configuration
+## Homebridge setup
 
-```json
-{
-  "platform": "Atlas",
-  "username": "you@example.com",
-  "password": "…",
-  "pin": "1234",
-  "enableControl": false,
-  "partialArmMode": "stay",
-  "zones": [{ "id": 12, "type": "hidden" }]
-}
-```
+Use Homebridge 2.4 or later with Node 22 or 24.
 
-See `config.schema.json` for all options.
+1. In Homebridge, open **Plugins** and search for `homebridge-atlas`. While releases are prereleases, install the `alpha` version.
+2. Open the plugin **Settings** and enter your Atlas email, password and panel user code.
+3. Click **Load detectors**, choose which detectors to show and their types, then click **Save**.
+4. Run the plugin as its own child bridge, restart it and add the bridge in Apple Home.
+
+Leave **Allow arming and disarming** off until you have compared Apple Home with the Atlas app. A rejected panel user code pauses the plugin until restart, so the panel keypad cannot be locked out by repeated attempts.
+
+See [installation](docs/INSTALLATION.md) and [configuration](docs/CONFIGURATION.md). For intermittent problems, turn on **Debug diagnostics**, restart the child bridge and look for `Diagnostic report:` in the log. Reports contain no detector names or credentials.
 
 ## Documentation
 
@@ -35,19 +33,20 @@ See `config.schema.json` for all options.
 - [Configuration](docs/CONFIGURATION.md)
 - [Validation](docs/VALIDATION.md)
 - [Architecture](docs/ARCHITECTURE.md)
-- [Releasing](docs/RELEASING.md)
-- [Feasibility and plan](docs/FEASIBILITY.md)
-- [RISCO Cloud web UI API (alternative route)](docs/research/riscocloud-webui-api.md)
+- [Release checklist](RELEASE_STEPS.md) and [releasing](docs/RELEASING.md)
 - [Contributing](CONTRIBUTING.md)
 
-## Check your account (read-only)
+## Development
 
 ```sh
 npm ci
-npm run diagnose
+npm run check
+npm pack
 ```
 
-This prompts for your credentials with hidden input, reads your panel state once and prints only structure and counts. It never arms, disarms or bypasses.
+`npm run diagnose` is an optional, read-only account check for development. It prompts for credentials in a terminal. The plugin itself never requires a terminal.
+
+Independent project, not affiliated with RISCO Group, Atlas Security, Apple or Homebridge.
 
 ## License
 

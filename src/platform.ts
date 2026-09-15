@@ -86,6 +86,17 @@ export class AtlasPlatform implements DynamicPlatformPlugin {
       for (const entry of this.#accessories.values()) entry.presentation.close();
       this.#accessories.clear();
     });
+    if (
+      isRecord(config) &&
+      ['username', 'password', 'pin'].every((key) => config[key] === undefined)
+    ) {
+      // Installed but not set up: do not start monitoring or keep accessories from an earlier setup.
+      log.info('Atlas is not configured. Open the plugin settings to sign in.');
+      api.on('didFinishLaunching', () => {
+        this.removeAll();
+      });
+      return;
+    }
     try {
       this.#config = parseConfig(config);
       const gateway = new AtlasGateway(
@@ -148,6 +159,14 @@ export class AtlasPlatform implements DynamicPlatformPlugin {
           })
         : new ZoneSensor(this.#api.hap, accessory, this.#coordinator, verified?.id, sensor);
     this.#accessories.set(accessory.UUID, { accessory, presentation });
+  }
+
+  private removeAll(): void {
+    for (const entry of this.#accessories.values()) {
+      this.#api.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [entry.accessory]);
+      entry.presentation.close();
+    }
+    this.#accessories.clear();
   }
 
   private uuid(identity: Identity): string {

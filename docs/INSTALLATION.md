@@ -5,9 +5,13 @@
 1. Download a Homebridge backup using Settings → Backup & Restore. Protect it: it contains credentials and pairing data.
 2. Do not run another RISCO integration against the same account at the same time; competing sessions can invalidate each other.
 
+## Install from npm
+
+In Homebridge UI, open **Plugins**, search for `homebridge-atlas` and install it. While releases are prereleases, choose the `alpha` version. Alternatively, run `npm install homebridge-atlas@alpha` in the npm environment Homebridge uses. npm installs the one runtime dependency (`@homebridge/plugin-ui-utils`); the plugin runs no install scripts and compiles nothing on the host.
+
 ## Install a test build
 
-Until a release is published, build a tarball from the intended commit on a development machine:
+To test an unreleased commit, build a tarball on a development machine:
 
 ```sh
 npm ci
@@ -19,11 +23,9 @@ Transfer the `.tgz` to the Homebridge host, verify its SHA-256, and install it i
 
 ```sh
 cd /var/lib/homebridge
-sha256sum homebridge-atlas-0.1.0-alpha.0.tgz
-npm install --omit=dev --ignore-scripts --no-audit --no-fund ./homebridge-atlas-0.1.0-alpha.0.tgz
+sha256sum homebridge-atlas-X.Y.Z.tgz
+npm install --omit=dev --ignore-scripts --no-audit --no-fund ./homebridge-atlas-X.Y.Z.tgz
 ```
-
-npm fetches the one runtime dependency (`@homebridge/plugin-ui-utils`); nothing is compiled on the host.
 
 ## Configure and pair
 
