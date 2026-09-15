@@ -1,0 +1,50 @@
+{
+  "error": 0,
+  "detectors": {
+    "parts": [
+      {
+        "id": 0,
+        "name": "Home",
+        "armIcon": "/Content/images/ico-disarmed.png",
+        "detectors": [
+          {
+            "id": 0,
+            "bypassed": false,
+            "filter": "",
+            "classAttrib": "",
+            "data_icon": "detector",
+            "name": "Hall PIR",
+            "strTimeval": ""
+          },
+          {
+            "id": 1,
+            "bypassed": false,
+            "filter": "triggered",
+            "classAttrib": "",
+            "data_icon": "detector2",
+            "name": "Front Door",
+            "strTimeval": ""
+          },
+          {
+            "id": 4,
+            "bypassed": true,
+            "filter": "bypassed",
+            "classAttrib": "disable",
+            "data_icon": "detector5",
+            "name": "Kitchen PIR",
+            "strTimeval": "01/01/2026 12:00 AM"
+          },
+          {
+            "id": 7,
+            "bypassed": false,
+            "filter": "",
+            "classAttrib": "error",
+            "data_icon": "detector",
+            "name": "Garden Beam",
+            "strTimeval": "02/01/2026 3:15 PM"
+          }
+        ]
+      }
+    ]
+  }
+}

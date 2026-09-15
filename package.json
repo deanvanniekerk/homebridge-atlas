@@ -1,0 +1,39 @@
+{
+  "name": "homebridge-atlas",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Atlas Home Security (RISCO Cloud) detector state and arming for Homebridge",
+  "type": "module",
+  "engines": {
+    "node": "^22 || ^24",
+    "homebridge": "^2.4.0"
+  },
+  "license": "MIT",
+  "author": "Dean van Niekerk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deanvanniekerk/homebridge-atlas.git"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "format": "prettier --write src test package.json tsconfig.json .github/workflows docs README.md",
+    "format:check": "prettier --check src test package.json tsconfig.json .github/workflows docs README.md",
+    "check": "npm run format:check && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "prettier": "3.9.6",
+    "typescript": "6.0.3"
+  },
+  "keywords": [
+    "homebridge-plugin",
+    "risco",
+    "atlas"
+  ],
+  "homepage": "https://github.com/deanvanniekerk/homebridge-atlas#readme",
+  "bugs": {
+    "url": "https://github.com/deanvanniekerk/homebridge-atlas/issues"
+  },
+  "packageManager": "npm@10.9.8"
+}

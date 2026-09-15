@@ -1,0 +1,23 @@
+# Node / TypeScript output
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+*.log
+
+# Local credentials, sessions and raw diagnostics
+.env
+.env.*
+!.env.example
+.local/
+.homebridge/
+*.pem
+*.key
+*.p12
+*.pfx
+*.pcap
+*.pcapng
+*.har
+
+# macOS
+.DS_Store
