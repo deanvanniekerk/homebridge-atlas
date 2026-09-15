@@ -14,7 +14,7 @@ export interface PartitionState {
   readonly arm: Reading<ArmState>;
   readonly alarm: Reading<boolean>;
   readonly exitDelaySeconds: Reading<number>;
-  /** `readyState` 1 = ready to arm, 0 = not ready (observed with a door open). */
+  /** `readyState` 2 = ready (observed with all zones closed), 0 = not ready (a door open). */
   readonly ready: Reading<boolean>;
 }
 
@@ -98,9 +98,11 @@ function flag(value: unknown): Reading<boolean> {
     : { available: false, reason: 'invalid' };
 }
 
+// Observed on the owner's panel: 0 with a door open, 2 with every zone closed. 1 is unobserved
+// and stays unknown rather than guessed.
 const readyStates = new Map<unknown, boolean>([
   [0, false],
-  [1, true],
+  [2, true],
 ]);
 
 function seconds(value: unknown): Reading<number> {

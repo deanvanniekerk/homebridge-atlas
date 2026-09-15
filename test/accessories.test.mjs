@@ -14,7 +14,7 @@ async function setup(t, options = {}) {
   const api = new HomebridgeAPI();
   const scheduler = new FakeScheduler();
   const raw = {
-    partition: { id: 0, armedState: 1, alarmState: 0, exitDelayTO: 0, readyState: 1 },
+    partition: { id: 0, armedState: 1, alarmState: 0, exitDelayTO: 0, readyState: 2 },
     zones: [
       { zoneID: 1, zoneName: 'Hall PIR', status: 0, trouble: false },
       { zoneID: 2, zoneName: 'Front Door', status: 1, trouble: false },

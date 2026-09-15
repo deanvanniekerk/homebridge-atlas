@@ -2,6 +2,12 @@
 
 Release notes for `homebridge-atlas` live here. The release workflow publishes the section matching `package.json` to GitHub, so the npm package, tag and GitHub release all use the same version and notes.
 
+## [0.1.0-alpha.5] - 2026-09-15
+
+### Fixed
+
+- Partition readiness uses the values observed on a real panel: `readyState` 2 is ready and 0 is not ready. The unobserved 1 is no longer assumed to mean ready.
+
 ## [0.1.0-alpha.4] - 2026-09-15
 
 ### Added

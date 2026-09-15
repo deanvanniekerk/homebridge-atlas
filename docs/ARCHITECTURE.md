@@ -50,7 +50,7 @@ Partitions are keyed by `id`; `armedState` 1/2/3 maps to disarmed/partial/armed,
 
 - **Zone faults:** zone `trouble` is a boolean. A true value, or the panel being offline, sets `StatusFault` on that zone's sensor.
 - **Panel offline:** comes from the most recent of `state.isOnline` in a read and `IsOffline` in a push; a push wins a tie. While offline, the Security System and every zone show `StatusFault`, the log warns once and again on recovery, and arm/disarm commands are refused without being sent. Cloud-cached state alone is not a fault.
-- **Readiness:** partition `readyState` 1 means ready and 0 means not ready (observed with a door open); other values are unknown. Arming or partial arming a not-ready partition is refused locally with HAP `NOT_ALLOWED_IN_CURRENT_STATE` and a log warning. Disarming is never blocked by readiness, and unknown readiness does not block commands.
+- **Readiness:** partition `readyState` 2 means ready (observed with every zone closed) and 0 means not ready (observed with a door open); other values, including the unobserved 1, are unknown. Arming or partial arming a not-ready partition is refused locally with HAP `NOT_ALLOWED_IN_CURRENT_STATE` and a log warning. Disarming is never blocked by readiness, and unknown readiness does not block commands.
 
 ## Scheduling and commands
 
