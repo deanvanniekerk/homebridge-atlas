@@ -95,8 +95,10 @@ function envelope(value: unknown, call: HttpCall): unknown {
   if (!('response' in value)) throw new CloudError('invalid-response');
   if (value.result !== undefined && value.result !== null) {
     if (!Number.isInteger(value.result)) throw new CloudError('invalid-response');
-    if (value.result === PANEL_TIMEOUT_RESULT) throw new CloudError('panel-timeout');
-    if (value.result !== 0) throw new CloudError('vendor-rejected');
+    if (value.result === PANEL_TIMEOUT_RESULT)
+      throw new CloudError('panel-timeout', 0, false, PANEL_TIMEOUT_RESULT);
+    if (value.result !== 0)
+      throw new CloudError('vendor-rejected', 0, false, value.result as number);
   }
   return value.response;
 }

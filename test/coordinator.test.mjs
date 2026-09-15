@@ -79,9 +79,13 @@ test('transient failures keep state for three intervals, then go stale; auth fai
   await h.scheduler.advance(1);
   assert.equal(h.coordinator.snapshot().status, 'stale');
   assert.equal(h.coordinator.partition(0), undefined);
+  h.panelState.fail = new CloudError('vendor-rejected', 0, false, 9);
+  await h.scheduler.advance(30_000);
+  assert.equal(h.coordinator.snapshot().failureCode, 9);
   h.panelState.fail = new CloudError('invalid-pin');
   await h.scheduler.advance(30_000);
   assert.equal(h.coordinator.snapshot().status, 'auth-required');
+  assert.equal(h.coordinator.snapshot().failureCode, undefined);
   h.panelState.fail = undefined;
   await h.scheduler.advance(30_000);
   assert.equal(h.coordinator.snapshot().status, 'healthy');

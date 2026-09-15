@@ -40,6 +40,8 @@ export class CloudError extends Error {
     readonly category: CloudErrorCategory,
     readonly retryAfterMs = 0,
     readonly deliveryUncertain = false,
+    /** Integer vendor `result` code, when the cloud supplied one. Safe to log. */
+    readonly vendorResult?: number,
   ) {
     super(messages[category]);
     this.name = 'CloudError';

@@ -53,6 +53,26 @@ test('a panel timeout falls back once to cloud-cached state', async (t) => {
   );
 });
 
+test('a live panel read that exceeds the request deadline falls back to cloud-cached state', async (t) => {
+  const server = await serverFor(
+    t,
+    riscoRoutes({
+      state: (call, res) => {
+        // A slow panel never answers the live read within the client's request deadline.
+        if (!call.body.fromControlPanel) riscoRoutes()(call, res);
+      },
+    }),
+  );
+  const client = new RiscoClient(credentials, { origin: server.origin, requestTimeoutMs: 150 });
+  t.after(() => client.close());
+  const result = await client.state();
+  assert.equal(result.fromControlPanel, false);
+  assert.deepEqual(
+    server.calls.filter((call) => call.route === 'state').map((call) => call.body.fromControlPanel),
+    [true, false],
+  );
+});
+
 test('session expiry renews the whole login once and replays the read', async (t) => {
   let logins = 0;
   const server = await serverFor(
@@ -166,14 +186,15 @@ test('malformed envelopes and HTTP failures map to fixed categories without vend
     [(res) => reply(res, { secret: credentials.password }), 'invalid-response'],
     [(res) => reply(res, { status: 200, response: null, result: 'x' }), 'invalid-response'],
     [(res) => reply(res, { status: 403, response: null }), 'permission-denied'],
-    [(res) => reply(res, failure({ result: 9 })), 'vendor-rejected'],
+    [(res) => reply(res, failure({ result: 9 })), 'vendor-rejected', 9],
   ];
-  for (const [respond, category] of cases) {
+  for (const [respond, category, vendorResult] of cases) {
     const server = await serverFor(t, riscoRoutes({ state: (_c, res) => respond(res) }));
     const client = new RiscoClient(credentials, { origin: server.origin });
     t.after(() => client.close());
     const error = await client.state().catch((caught) => caught);
     assert.equal(error.category, category);
+    assert.equal(error.vendorResult, vendorResult);
     assert.doesNotMatch(inspect(error), /synthetic-password|synthetic-token|synthetic-session/);
   }
 });
