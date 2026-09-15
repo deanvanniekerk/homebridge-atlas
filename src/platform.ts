@@ -75,6 +75,7 @@ export class AtlasPlatform implements DynamicPlatformPlugin {
   #logged: { signature: string; fault: boolean } | undefined;
   #warnedRejected = false;
   #pushAnnounced = false;
+  #offlineLogged: boolean | undefined;
 
   constructor(log: Logger, config: PlatformConfig, api: API) {
     this.#api = api;
@@ -141,6 +142,9 @@ export class AtlasPlatform implements DynamicPlatformPlugin {
         ? new SecuritySystem(this.#api.hap, accessory, this.#coordinator, verified?.id, {
             control: this.#config?.enableControl === true,
             partialArmMode: this.#config?.partialArmMode ?? 'stay',
+            warn: (message) => {
+              this.#log.warn(message);
+            },
           })
         : new ZoneSensor(this.#api.hap, accessory, this.#coordinator, verified?.id, sensor);
     this.#accessories.set(accessory.UUID, { accessory, presentation });
@@ -270,6 +274,15 @@ export class AtlasPlatform implements DynamicPlatformPlugin {
   }
 
   private report(snapshot: SiteSnapshot): void {
+    if (snapshot.offline !== undefined && snapshot.offline !== this.#offlineLogged) {
+      if (snapshot.offline)
+        this.#log.warn(
+          'The control panel is offline from RISCO Cloud; accessories show a fault and commands are refused.',
+        );
+      else if (this.#offlineLogged === true)
+        this.#log.info('The control panel is back online with RISCO Cloud.');
+      this.#offlineLogged = snapshot.offline;
+    }
     if (snapshot.stream.connected && !this.#pushAnnounced) {
       this.#pushAnnounced = true;
       this.#log.info('Push updates connected.');

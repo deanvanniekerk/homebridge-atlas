@@ -50,8 +50,14 @@ export function panelReport(panel: PanelState) {
       arm: reading(partition.arm),
       alarm: reading(partition.alarm),
       exitDelaySeconds: reading(partition.exitDelaySeconds),
+      ready: reading(partition.ready),
     })),
-    zones: { count: panel.zones.length, conditions },
+    online: reading(panel.online),
+    zones: {
+      count: panel.zones.length,
+      conditions,
+      faults: panel.zones.filter((zone) => zone.trouble.available && zone.trouble.value).length,
+    },
     rejectedRecords: panel.rejectedRecords,
     evidence: panel.evidence,
   };
@@ -98,6 +104,7 @@ export class Diagnostics {
         status: snapshot.status,
         failure: snapshot.failure ?? null,
         failureCode: snapshot.failureCode ?? null,
+        offline: snapshot.offline ?? null,
         lastSuccessAgeMs: elapsed(now, snapshot.lastSuccessMs),
         retryInMs: elapsed(snapshot.retryAtMs, now),
         pendingTargets: Object.fromEntries(snapshot.targets),

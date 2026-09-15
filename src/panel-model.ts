@@ -14,6 +14,8 @@ export interface PartitionState {
   readonly arm: Reading<ArmState>;
   readonly alarm: Reading<boolean>;
   readonly exitDelaySeconds: Reading<number>;
+  /** `readyState` 1 = ready to arm, 0 = not ready (observed with a door open). */
+  readonly ready: Reading<boolean>;
 }
 
 export interface ZoneState {
@@ -22,6 +24,8 @@ export interface ZoneState {
   /** Raw vendor zone type code; its meaning is not yet verified. */
   readonly type: number | undefined;
   readonly condition: Reading<ZoneCondition>;
+  /** Vendor `trouble` flag; observed true only for a zone the web UI showed as faulted. */
+  readonly trouble: Reading<boolean>;
 }
 
 /** Vendor structure seen in the latest reply: field names and enumerated value counts only. */
@@ -48,6 +52,8 @@ export interface PanelState {
   readonly observedAtMs: number;
   /** Cloud `lastStatusUpdate`, used to check that a cached read reflects a pushed change. */
   readonly statusUpdatedAtMs: number | undefined;
+  /** Cloud `state.isOnline`: whether the control panel is connected to RISCO Cloud. */
+  readonly online: Reading<boolean>;
   readonly partitions: readonly PartitionState[];
   readonly zones: readonly ZoneState[];
   /** Records dropped because their identity was missing, invalid or duplicated. */
@@ -84,6 +90,18 @@ function mapped<T>(value: unknown, values: Map<unknown, T>): Reading<T> {
     ? { available: false, reason: 'unrecognized' }
     : { available: true, value: result };
 }
+
+function flag(value: unknown): Reading<boolean> {
+  if (value === undefined || value === null) return { available: false, reason: 'missing' };
+  return typeof value === 'boolean'
+    ? { available: true, value }
+    : { available: false, reason: 'invalid' };
+}
+
+const readyStates = new Map<unknown, boolean>([
+  [0, false],
+  [1, true],
+]);
 
 function seconds(value: unknown): Reading<number> {
   if (value === undefined || value === null) return { available: false, reason: 'missing' };
@@ -163,6 +181,7 @@ export function decodePanelState(
           arm: mapped(row.armedState, armStates),
           alarm: mapped(row.alarmState, alarmStates),
           exitDelaySeconds: seconds(row.exitDelayTO),
+          ready: mapped(row.readyState, readyStates),
         }
       : undefined,
   );
@@ -176,6 +195,7 @@ export function decodePanelState(
               : `Zone ${String(row.zoneID)}`,
           type: Number.isInteger(row.zoneType) ? (row.zoneType as number) : undefined,
           condition: mapped(row.status, zoneConditions),
+          trouble: flag(row.trouble),
         }
       : undefined,
   );
@@ -186,6 +206,7 @@ export function decodePanelState(
     statusUpdatedAtMs: vendorTime(
       isRecord(value) && isRecord(value.state) ? value.state.lastStatusUpdate : undefined,
     ),
+    online: flag(isRecord(value) && isRecord(value.state) ? value.state.isOnline : undefined),
     partitions: Object.freeze(partitions.values),
     zones: Object.freeze(zones.values),
     rejectedRecords: partitions.rejected + zones.rejected,

@@ -44,6 +44,14 @@ export class ZoneSensor {
       );
     // A bypassed zone is not monitored by the panel, so its reported condition is not evidence.
     this.bind(service.getCharacteristic(C.StatusActive), () => this.condition() !== 'bypassed');
+    // A zone trouble flag, or the panel being offline from RISCO Cloud, is shown as a fault.
+    this.bind(service.getCharacteristic(C.StatusFault), () => {
+      const zone = this.zone();
+      const offline = this.#coordinator?.snapshot().offline === true;
+      return offline || (zone.trouble.available && zone.trouble.value)
+        ? C.StatusFault.GENERAL_FAULT
+        : C.StatusFault.NO_FAULT;
+    });
     this.update();
   }
 
@@ -71,10 +79,16 @@ export class ZoneSensor {
     this.#bindings.push({ characteristic, read: guarded });
   }
 
-  private condition() {
+  private zone() {
     const zone =
       this.#closed || this.#id === undefined ? undefined : this.#coordinator?.zone(this.#id);
-    if (!zone?.condition.available) throw this.unavailable();
+    if (!zone) throw this.unavailable();
+    return zone;
+  }
+
+  private condition() {
+    const zone = this.zone();
+    if (!zone.condition.available) throw this.unavailable();
     return zone.condition.value;
   }
 

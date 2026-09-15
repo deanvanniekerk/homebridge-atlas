@@ -116,7 +116,8 @@
         zone.type = type.value === 'motion' ? 'motion' : 'contact';
         void sync();
       });
-      const cells = [show, zone.name, conditions[zone.condition] ?? '—', type].map((content) => {
+      const now = `${conditions[zone.condition] ?? '—'}${zone.fault ? ' · Fault' : ''}`;
+      const cells = [show, zone.name, now, type].map((content) => {
         const cell = document.createElement('td');
         if (typeof content === 'string') cell.textContent = content;
         else cell.append(content);
@@ -189,6 +190,7 @@
           type: saved ? saved.type : found.suggested,
           visible: saved ? saved.visible : true,
           condition: found.condition,
+          fault: found.fault === true,
         });
       }
       // Keep saved choices for detectors the panel did not report this time.

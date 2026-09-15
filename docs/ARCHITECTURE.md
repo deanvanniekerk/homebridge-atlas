@@ -46,6 +46,12 @@ Connection counts, update count and age, push-to-state latency, the last stream 
 
 Partitions are keyed by `id`; `armedState` 1/2/3 maps to disarmed/partial/armed, `alarmState` 0/1 to alarm, `exitDelayTO` to seconds remaining. Zones are keyed by `zoneID`; `status` 0/1/2 maps to normal/triggered/bypassed and `zoneType` is kept raw. Unknown values stay unavailable rather than guessed. Records with missing or duplicate identity are dropped and counted. These mappings come from public integrations and synthetic tests; `npm run diagnose` checks them against a real account.
 
+## Faults, offline and readiness
+
+- **Zone faults:** zone `trouble` is a boolean. A true value, or the panel being offline, sets `StatusFault` on that zone's sensor.
+- **Panel offline:** comes from the most recent of `state.isOnline` in a read and `IsOffline` in a push; a push wins a tie. While offline, the Security System and every zone show `StatusFault`, the log warns once and again on recovery, and arm/disarm commands are refused without being sent. Cloud-cached state alone is not a fault.
+- **Readiness:** partition `readyState` 1 means ready and 0 means not ready (observed with a door open); other values are unknown. Arming or partial arming a not-ready partition is refused locally with HAP `NOT_ALLOWED_IN_CURRENT_STATE` and a log warning. Disarming is never blocked by readiness, and unknown readiness does not block commands.
+
 ## Scheduling and commands
 
 One site loop polls from completion (default 30 seconds, 10–300; see push updates for the connected cadence). Without push, state expires after three intervals; getters then report communication failure. Credential, PIN and site failures report `auth-required`; protocol mismatches `protocol-error`. Subscribers receive the latest snapshot; the limit is eight.
