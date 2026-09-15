@@ -2,26 +2,47 @@
 
 A Homebridge plugin for **Atlas Home Security** (RISCO Cloud) alarm systems.
 
-> **Status: research / pre-alpha.** Nothing is installable yet. The API has been mapped and state decoders exist, but there is no Homebridge platform yet.
+> **Status: pre-alpha, not yet validated against a real account.** The transport, panel model, coordinator and accessories are implemented and tested against a synthetic cloud. Arming and disarming are off by default.
 
-## Goals
+## What it does
 
-- Expose detector (zone) state in HomeKit as motion and contact sensors.
-- Arm, partially arm and disarm partitions from HomeKit as a Security System.
+- One **Security System** per partition: Disarmed, Home (or Night) for partial arm, Away for full arm, and Alarm Triggered.
+- One **motion or contact sensor** per zone (detector), with bypassed zones shown as inactive.
+- Optional arming and disarming from Apple Home (`enableControl`).
+
+It uses the RISCO Cloud mobile API that RISCO's apps use (the Atlas24 app is published under RISCO's package namespace), with the email, password and panel user code you use in the app.
+
+## Configuration
+
+```json
+{
+  "platform": "Atlas",
+  "username": "you@example.com",
+  "password": "…",
+  "pin": "1234",
+  "enableControl": false,
+  "partialArmMode": "stay",
+  "zones": [{ "id": 12, "type": "hidden" }]
+}
+```
+
+See `config.schema.json` for all options.
 
 ## Documentation
 
+- [Architecture](docs/ARCHITECTURE.md)
 - [Feasibility and plan](docs/FEASIBILITY.md)
-- [RISCO Cloud web UI API reference](docs/research/riscocloud-webui-api.md)
+- [RISCO Cloud web UI API (alternative route)](docs/research/riscocloud-webui-api.md)
+- [Contributing](CONTRIBUTING.md)
 
-## Development
+## Check your account (read-only)
 
-```bash
-npm install
-npm run check
+```sh
+npm ci
+npm run diagnose
 ```
 
-Tests use `node:test` against the compiled `dist/` output, with synthetic fixtures only. Never commit credentials, PINs, site ids or raw responses from a real account.
+This prompts for your credentials with hidden input, reads your panel state once and prints only structure and counts. It never arms, disarms or bypasses.
 
 ## License
 

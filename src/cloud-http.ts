@@ -89,10 +89,10 @@ export async function post(call: HttpCall): Promise<unknown> {
  * failure inside a 200 reply. Vendor text is never surfaced.
  */
 function envelope(value: unknown, call: HttpCall): unknown {
-  if (!isRecord(value) || !Number.isInteger(value.status) || !('response' in value))
-    throw new CloudError('invalid-response');
+  if (!isRecord(value) || !Number.isInteger(value.status)) throw new CloudError('invalid-response');
   if (value.status !== 200)
     throw new CloudError(categoryFor(value.status as number, call.token !== undefined));
+  if (!('response' in value)) throw new CloudError('invalid-response');
   if (value.result !== undefined && value.result !== null) {
     if (!Number.isInteger(value.result)) throw new CloudError('invalid-response');
     if (value.result === PANEL_TIMEOUT_RESULT) throw new CloudError('panel-timeout');

@@ -86,7 +86,7 @@ test('session expiry renews the whole login once and replays the read', async (t
 
 test('rejected credentials, PIN and site selection pause traffic until reconfigured', async (t) => {
   const scenarios = [
-    ['invalid-credentials', { login: (_c, res) => reply(res, { status: 401, response: null }) }],
+    ['invalid-credentials', { login: (_c, res) => reply(res, { status: 401, errorText: 'x' }) }],
     ['invalid-pin', { siteLogin: (_c, res) => reply(res, failure({ result: 5 })) }],
     ['invalid-pin', { siteLogin: (_c, res) => reply(res, { status: 401, response: null }) }],
     [

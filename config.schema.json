@@ -1,0 +1,94 @@
+{
+  "pluginAlias": "Atlas",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "Monitor Atlas Home Security (RISCO Cloud) detectors and, optionally, arm and disarm from Apple Home. Credentials remain in your Homebridge configuration.",
+  "schema": {
+    "type": "object",
+    "required": ["username", "password", "pin"],
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "default": "Atlas",
+        "minLength": 1,
+        "maxLength": 64,
+        "pattern": "^\\S(?:[^\\r\\n]*\\S)?$"
+      },
+      "username": {
+        "title": "Atlas / RISCO username",
+        "description": "The email address you use to sign in to the Atlas app.",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 320,
+        "pattern": "^\\S(?:[^\\r\\n]*\\S)?$"
+      },
+      "password": {
+        "title": "Password",
+        "type": "string",
+        "format": "password",
+        "minLength": 1,
+        "maxLength": 4096,
+        "pattern": "\\S"
+      },
+      "pin": {
+        "title": "Panel user code (PIN)",
+        "description": "Required by RISCO Cloud to open a panel session. A rejected code pauses the plugin until restart to avoid a keypad lockout.",
+        "type": "string",
+        "format": "password",
+        "pattern": "^\\d{4,8}$"
+      },
+      "siteId": {
+        "title": "Site ID (optional)",
+        "description": "Only needed when the account has more than one site. Run npm run diagnose to list site IDs.",
+        "type": "integer",
+        "minimum": 0
+      },
+      "pollInterval": {
+        "title": "Poll interval (seconds)",
+        "type": "integer",
+        "minimum": 10,
+        "maximum": 300,
+        "default": 30
+      },
+      "enableControl": {
+        "title": "Enable arming and disarming",
+        "description": "Off by default. When off, the security system is read-only in Apple Home.",
+        "type": "boolean",
+        "default": false
+      },
+      "partialArmMode": {
+        "title": "Show partial arm as",
+        "type": "string",
+        "default": "stay",
+        "oneOf": [
+          { "title": "Home (Stay)", "enum": ["stay"] },
+          { "title": "Night", "enum": ["night"] }
+        ]
+      },
+      "includeZones": {
+        "title": "Include zone sensors",
+        "type": "boolean",
+        "default": true
+      },
+      "zones": {
+        "title": "Zone overrides",
+        "description": "Zone names containing PIR, motion, beam, curtain or detector become motion sensors; others become contact sensors. Override or hide zones by ID.",
+        "type": "array",
+        "maxItems": 256,
+        "items": {
+          "type": "object",
+          "required": ["id", "type"],
+          "properties": {
+            "id": { "title": "Zone ID", "type": "integer", "minimum": 0 },
+            "type": {
+              "title": "Type",
+              "type": "string",
+              "enum": ["motion", "contact", "hidden"]
+            }
+          }
+        }
+      }
+    }
+  }
+}
