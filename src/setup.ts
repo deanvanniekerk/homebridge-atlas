@@ -9,6 +9,8 @@ export interface ZoneChoice {
   readonly name: string;
   readonly suggested: SensorKind;
   readonly condition: ZoneCondition | 'unknown';
+  /** Vendor trouble flag for the zone. */
+  readonly fault: boolean;
 }
 
 export type ZoneDiscovery =
@@ -57,6 +59,7 @@ export async function discoverZones(
         name: zone.name,
         suggested: sensorKindFor(zone.name),
         condition: zone.condition.available ? zone.condition.value : 'unknown',
+        fault: zone.trouble.available && zone.trouble.value,
       })),
     };
   } catch (error) {

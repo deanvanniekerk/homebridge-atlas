@@ -103,7 +103,7 @@ const discovered = {
   partitions: 1,
   zones: [
     { id: 0, name: 'Hall PIR', suggested: 'motion', condition: 'normal' },
-    { id: 1, name: 'Front Door', suggested: 'contact', condition: 'triggered' },
+    { id: 1, name: 'Front Door', suggested: 'contact', condition: 'triggered', fault: true },
     { id: 2, name: 'Arm Disarm', suggested: 'contact', condition: 'normal' },
   ],
 };
@@ -135,7 +135,7 @@ test('loads detectors, then records visibility and type for every zone while pre
     rows.map((row) => [row.name, row.now, row.show.checked, row.type.value]),
     [
       ['Hall PIR', 'Closed / clear', true, 'motion'],
-      ['Front Door', 'Open / active', true, 'contact'],
+      ['Front Door', 'Open / active · Fault', true, 'contact'],
       ['Arm Disarm', 'Closed / clear', true, 'contact'],
     ],
   );

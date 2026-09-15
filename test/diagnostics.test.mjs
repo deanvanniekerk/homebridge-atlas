@@ -78,13 +78,19 @@ test('debug reports are sanitized, bounded to one per five minutes and off by de
     events: null,
   });
   assert.deepEqual(report.panel.partitions, [
-    { id: 0, arm: 'disarmed', alarm: 'false', exitDelaySeconds: '0' },
+    { id: 0, arm: 'disarmed', alarm: 'false', exitDelaySeconds: '0', ready: 'false' },
   ]);
-  assert.deepEqual(report.panel.zones, { count: 2, conditions: { triggered: 1, normal: 1 } });
+  assert.equal(report.panel.online, 'true');
+  assert.equal(report.site.offline, null);
+  assert.deepEqual(report.panel.zones, {
+    count: 2,
+    conditions: { triggered: 1, normal: 1 },
+    faults: 0,
+  });
   assert.deepEqual(report.panel.evidence.zoneStatuses, { 1: 1, 0: 1 });
   assert.deepEqual(report.panel.evidence.zoneTypes, { 3: 1, 1: 1 });
   assert.deepEqual(report.panel.evidence.zoneTroubles, { 0: 1, undefined: 1 });
-  assert.deepEqual(report.panel.evidence.online, { undefined: 1 });
+  assert.deepEqual(report.panel.evidence.online, { true: 1 });
   assert.deepEqual(report.panel.evidence.zoneFields, [
     'extra',
     'status',

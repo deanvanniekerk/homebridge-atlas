@@ -17,15 +17,20 @@ export interface PanelGateway {
   arm(partitionId: number, target: ArmState, signal: AbortSignal): Promise<void>;
 }
 
+export type CommandErrorCategory = 'busy' | 'unavailable' | 'unconfirmed' | 'not-ready' | 'offline';
+
+const commandMessages: Record<CommandErrorCategory, string> = {
+  busy: 'Another arm or disarm command is still in progress.',
+  unavailable: 'Fresh partition state is unavailable. The command was not sent.',
+  unconfirmed: 'The panel did not report the requested state in time.',
+  'not-ready':
+    'The panel reports the partition is not ready to arm (a zone is open or faulted). The command was not sent.',
+  offline: 'The control panel is offline from RISCO Cloud. The command was not sent.',
+};
+
 export class CommandError extends Error {
-  constructor(readonly category: 'busy' | 'unavailable' | 'unconfirmed') {
-    super(
-      category === 'busy'
-        ? 'Another arm or disarm command is still in progress.'
-        : category === 'unavailable'
-          ? 'Fresh partition state is unavailable. The command was not sent.'
-          : 'The panel did not report the requested state in time.',
-    );
+  constructor(readonly category: CommandErrorCategory) {
+    super(commandMessages[category]);
     this.name = 'CommandError';
   }
 }
@@ -41,6 +46,11 @@ export interface SiteSnapshot {
   /** Vendor result code of the latest failure, when the cloud supplied one. */
   readonly failureCode: number | undefined;
   readonly retryAtMs: number;
+  /**
+   * Whether the control panel is disconnected from RISCO Cloud, from the most recent of the
+   * panel's `isOnline` and a pushed `IsOffline`. Undefined when neither is known.
+   */
+  readonly offline: boolean | undefined;
   /** Requested arm states awaiting confirmation, by partition id. */
   readonly targets: ReadonlyMap<number, ArmState>;
   readonly stream: StreamStatus;
@@ -111,6 +121,7 @@ export class SiteCoordinator {
   #notBefore: number | undefined;
   #pushReceivedAt: number | undefined;
   #lastPushedStatusMs = -Infinity;
+  #pushedOffline: { value: boolean; at: number } | undefined;
   /** State is presented until this time; set on success and shortened when push drops. */
   #freshUntil: number | undefined;
   #lastPollStartedAt = -Infinity;
@@ -187,6 +198,7 @@ export class SiteCoordinator {
       failure: this.#failure,
       failureCode: this.#failure === undefined ? undefined : this.#failureCode,
       retryAtMs: this.#retryAt,
+      offline: this.offline(),
       targets: new Map([...this.#pending].map(([id, pending]) => [id, pending.target])),
       stream: Object.freeze({ ...this.#stream }),
     });
@@ -251,6 +263,11 @@ export class SiteCoordinator {
     if (this.#commandActive) throw new CommandError('busy');
     const partition = this.partition(partitionId);
     if (!partition?.arm.available) throw new CommandError('unavailable');
+    if (this.offline() === true) throw new CommandError('offline');
+    // Arming a partition the panel reports as not ready would fail or leave zones unprotected;
+    // refuse locally. Disarming is never blocked.
+    if (target !== 'disarmed' && partition.ready.available && !partition.ready.value)
+      throw new CommandError('not-ready');
     if (partition.arm.value === target && !this.#pending.has(partitionId)) return;
     this.#commandActive = true;
     this.settle(partitionId);
@@ -378,6 +395,16 @@ export class SiteCoordinator {
     this.refresh();
   }
 
+  private offline(): boolean | undefined {
+    const panel = this.#panel?.online.available
+      ? { value: !this.#panel.online.value, at: this.#panel.observedAtMs }
+      : undefined;
+    const pushed = this.#pushedOffline;
+    // A push received at the same instant as a read arrived after it.
+    if (panel && pushed) return (pushed.at >= panel.at ? pushed : panel).value;
+    return (panel ?? pushed)?.value;
+  }
+
   private stopped(): boolean {
     return this.#shutdown.signal.aborted;
   }
@@ -386,7 +413,10 @@ export class SiteCoordinator {
     if (this.#shutdown.signal.aborted) return;
     this.#stream.updates += 1;
     this.#stream.lastUpdateMs = this.#scheduler.now();
-    if (update.offline !== undefined) this.#stream.offline = update.offline;
+    if (update.offline !== undefined) {
+      this.#stream.offline = update.offline;
+      this.#pushedOffline = { value: update.offline, at: this.#scheduler.now() };
+    }
     const status = update.statusUpdatedAtMs;
     // Event-log-only notifications repeat an already-seen status time and need no read.
     if (status !== undefined && status <= this.#lastPushedStatusMs) {

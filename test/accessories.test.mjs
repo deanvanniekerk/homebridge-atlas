@@ -14,23 +14,28 @@ async function setup(t, options = {}) {
   const api = new HomebridgeAPI();
   const scheduler = new FakeScheduler();
   const raw = {
-    partition: { id: 0, armedState: 1, alarmState: 0, exitDelayTO: 0 },
+    partition: { id: 0, armedState: 1, alarmState: 0, exitDelayTO: 0, readyState: 1 },
     zones: [
-      { zoneID: 1, zoneName: 'Hall PIR', status: 0 },
-      { zoneID: 2, zoneName: 'Front Door', status: 1 },
-      { zoneID: 3, zoneName: 'Garden Beam', status: 2 },
+      { zoneID: 1, zoneName: 'Hall PIR', status: 0, trouble: false },
+      { zoneID: 2, zoneName: 'Front Door', status: 1, trouble: false },
+      { zoneID: 3, zoneName: 'Garden Beam', status: 2, trouble: true },
     ],
     fromControlPanel: true,
+    online: true,
   };
   const arms = [];
+  const warnings = [];
   const coordinator = new SiteCoordinator(
     {
       read: async () =>
-        decodePanelState(panel({ partitions: [raw.partition], zones: raw.zones }).response, {
-          siteId: 7,
-          fromControlPanel: raw.fromControlPanel,
-          observedAtMs: scheduler.now(),
-        }),
+        decodePanelState(
+          panel({ partitions: [raw.partition], zones: raw.zones, online: raw.online }).response,
+          {
+            siteId: 7,
+            fromControlPanel: raw.fromControlPanel,
+            observedAtMs: scheduler.now(),
+          },
+        ),
       arm: async (id, target) => {
         arms.push([id, target]);
       },
@@ -42,6 +47,7 @@ async function setup(t, options = {}) {
   const security = new SecuritySystem(api.hap, partitionAccessory, coordinator, 0, {
     control: options.control ?? true,
     partialArmMode: options.partialArmMode ?? 'stay',
+    warn: (message) => warnings.push(message),
   });
   const zones = [
     [1, 'motion'],
@@ -64,6 +70,7 @@ async function setup(t, options = {}) {
     C,
     raw,
     arms,
+    warnings,
     scheduler,
     coordinator,
     security,
@@ -105,7 +112,14 @@ test('security system fails before fresh state, then maps arm and alarm states',
   h.raw.fromControlPanel = false;
   await h.refresh();
   assert.equal(await h.securityChar('SecuritySystemCurrentState').handleGetRequest(), 4);
-  assert.equal(await h.securityChar('StatusFault').handleGetRequest(), 1);
+  assert.equal(
+    await h.securityChar('StatusFault').handleGetRequest(),
+    0,
+    'cloud-cached state alone is not a fault',
+  );
+  h.raw.online = false;
+  await h.refresh();
+  assert.equal(await h.securityChar('StatusFault').handleGetRequest(), 1, 'panel offline');
   assert.deepEqual(h.securityChar('SecuritySystemTargetState').props.validValues, [0, 1, 3]);
 });
 

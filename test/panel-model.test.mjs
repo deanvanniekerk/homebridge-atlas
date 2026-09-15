@@ -15,14 +15,16 @@ test('decodes partitions and zone conditions from GetState', () => {
       arm: { available: true, value: 'disarmed' },
       alarm: { available: true, value: false },
       exitDelaySeconds: { available: true, value: 0 },
+      ready: { available: true, value: false },
     },
   ]);
+  assert.deepEqual(state.online, { available: true, value: true });
   assert.deepEqual(
-    state.zones.map((zone) => [zone.id, zone.name, zone.type, zone.condition]),
+    state.zones.map((zone) => [zone.id, zone.name, zone.type, zone.condition, zone.trouble.value]),
     [
-      [0, 'Hall PIR', 3, { available: true, value: 'normal' }],
-      [1, 'Front Door', 1, { available: true, value: 'triggered' }],
-      [4, 'Garden Beam', 3, { available: true, value: 'bypassed' }],
+      [0, 'Hall PIR', 3, { available: true, value: 'normal' }, false],
+      [1, 'Front Door', 1, { available: true, value: 'triggered' }, false],
+      [4, 'Garden Beam', 3, { available: true, value: 'bypassed' }, true],
     ],
   );
   assert.equal(decode(panel().response, { fromControlPanel: false }).source, 'cloud');

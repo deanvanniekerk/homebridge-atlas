@@ -23,15 +23,18 @@ export const credentials = {
 export const siteId = 4242;
 export const sessionId = 'synthetic-session';
 
-export function panel({ partitions, zones } = {}) {
+export function panel({ partitions, zones, online = true } = {}) {
   return success({
     state: {
+      isOnline: online,
       status: {
-        partitions: partitions ?? [{ id: 0, armedState: 1, alarmState: 0, exitDelayTO: 0 }],
+        partitions: partitions ?? [
+          { id: 0, armedState: 1, alarmState: 0, exitDelayTO: 0, readyState: 0 },
+        ],
         zones: zones ?? [
-          { zoneID: 0, zoneName: 'Hall PIR', zoneType: 3, status: 0 },
-          { zoneID: 1, zoneName: 'Front Door', zoneType: 1, status: 1 },
-          { zoneID: 4, zoneName: 'Garden Beam', zoneType: 3, status: 2 },
+          { zoneID: 0, zoneName: 'Hall PIR', zoneType: 3, status: 0, trouble: false },
+          { zoneID: 1, zoneName: 'Front Door', zoneType: 1, status: 1, trouble: false },
+          { zoneID: 4, zoneName: 'Garden Beam', zoneType: 3, status: 2, trouble: true },
         ],
       },
     },

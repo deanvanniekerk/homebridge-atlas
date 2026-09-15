@@ -6,6 +6,8 @@ import type { ArmState } from './panel-model.js';
 export interface SecuritySystemOptions {
   readonly control: boolean;
   readonly partialArmMode: 'stay' | 'night';
+  /** Warnings for commands refused before anything is sent. */
+  readonly warn?: (message: string) => void;
 }
 
 /** HAP presentation of one partition: freshness, commands and vendor meaning belong upstream. */
@@ -80,6 +82,14 @@ export class SecuritySystem {
         if (error instanceof CloudError && error.category === 'timeout')
           throw this.status('timeout');
         if (error instanceof CommandError && error.category === 'busy') throw this.status('busy');
+        if (error instanceof CommandError && error.category === 'not-ready') {
+          this.#options.warn?.(
+            'Arming refused: the panel is not ready (a zone is open or faulted). Close or bypass the zone in the Atlas app, then try again.',
+          );
+          throw this.status('notAllowed');
+        }
+        if (error instanceof CommandError && error.category === 'offline')
+          this.#options.warn?.('Command refused: the control panel is offline from RISCO Cloud.');
         throw this.status('unavailable');
       } finally {
         this.update();
@@ -88,8 +98,8 @@ export class SecuritySystem {
 
     this.bind(service.getCharacteristic(C.StatusFault), () => {
       this.partition();
-      // Cloud-cached state means the panel itself did not answer the latest poll.
-      return this.#coordinator?.snapshot().panel?.source === 'cloud'
+      // The panel being offline from RISCO Cloud means presented state may no longer be current.
+      return this.#coordinator?.snapshot().offline === true
         ? C.StatusFault.GENERAL_FAULT
         : C.StatusFault.NO_FAULT;
     });
@@ -133,7 +143,7 @@ export class SecuritySystem {
     return value;
   }
 
-  private status(kind: 'unavailable' | 'invalid' | 'readOnly' | 'timeout' | 'busy') {
+  private status(kind: 'unavailable' | 'invalid' | 'readOnly' | 'timeout' | 'busy' | 'notAllowed') {
     const {
       HAPStatus: {
         SERVICE_COMMUNICATION_FAILURE,
@@ -141,6 +151,7 @@ export class SecuritySystem {
         READ_ONLY_CHARACTERISTIC,
         OPERATION_TIMED_OUT,
         RESOURCE_BUSY,
+        NOT_ALLOWED_IN_CURRENT_STATE,
       },
     } = this.#hap;
     const code = {
@@ -149,6 +160,7 @@ export class SecuritySystem {
       readOnly: READ_ONLY_CHARACTERISTIC,
       timeout: OPERATION_TIMED_OUT,
       busy: RESOURCE_BUSY,
+      notAllowed: NOT_ALLOWED_IN_CURRENT_STATE,
     }[kind];
     return new this.#hap.HapStatusError(code);
   }

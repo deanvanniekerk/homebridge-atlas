@@ -19,9 +19,9 @@ test('settings discovery returns zones with suggested sensor types and live cond
     siteId,
     partitions: 1,
     zones: [
-      { id: 0, name: 'Hall PIR', suggested: 'motion', condition: 'normal' },
-      { id: 1, name: 'Front Door', suggested: 'contact', condition: 'triggered' },
-      { id: 4, name: 'Garden Beam', suggested: 'motion', condition: 'bypassed' },
+      { id: 0, name: 'Hall PIR', suggested: 'motion', condition: 'normal', fault: false },
+      { id: 1, name: 'Front Door', suggested: 'contact', condition: 'triggered', fault: false },
+      { id: 4, name: 'Garden Beam', suggested: 'motion', condition: 'bypassed', fault: true },
     ],
   });
   assert.ok(server.calls.every((call) => call.route !== 'arm'));

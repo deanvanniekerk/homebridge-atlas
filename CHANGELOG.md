@@ -2,12 +2,25 @@
 
 Release notes for `homebridge-atlas` live here. The release workflow publishes the section matching `package.json` to GitHub, so the npm package, tag and GitHub release all use the same version and notes.
 
+## [0.1.0-alpha.4] - 2026-09-15
+
+### Added
+
+- Zone faults: a zone's trouble flag sets the sensor's fault status in Apple Home, and the settings page marks faulted detectors.
+- Panel offline: when the panel is disconnected from RISCO Cloud, the security system and every zone show a fault, the log warns once, and commands are refused.
+- Arming is refused with a log warning while the panel reports the partition is not ready to arm; disarming is never blocked.
+- Partition readiness, panel online state and zone fault count in the diagnostic report.
+
+### Fixed
+
+- The security system no longer shows a fault just because state was read from the cloud's cache, which push updates do routinely.
+- Refreshes around a push drop and reconnect read the cloud's cached state instead of asking the panel.
+
 ## [0.1.0-alpha.3] - 2026-09-15
 
 ### Fixed
 
 - A dropped push connection no longer makes accessories briefly unavailable: state stays fresh for one polling window while the plugin refreshes and reconnects.
-- Refreshes around a push drop and reconnect read the cloud's cached state once a status time is known, instead of asking the panel every two minutes.
 
 ### Added
 
