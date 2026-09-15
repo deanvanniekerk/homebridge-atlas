@@ -150,8 +150,8 @@ test('an idle stream dropped by the network keeps state fresh and reconnects wit
   assert.equal(h.streams.length, 2, 'reconnected after one second');
   assert.ok(h.reads.length > reads, 'refreshed after the drop');
   assert.ok(
-    h.reads.slice(reads).some((read) => read.notBefore === Date.parse('2026-09-15T17:00:05Z')),
-    'reconnect refresh may use the cloud cache',
+    h.reads.slice(reads).every((read) => read.notBefore === Date.parse('2026-09-15T17:00:05Z')),
+    'drop and reconnect refreshes use the cloud cache, not the panel',
   );
   assert.ok(h.reads.at(-1).at > lastRead);
   assert.equal(h.coordinator.snapshot().status, 'healthy');

@@ -7,7 +7,7 @@ Release notes for `homebridge-atlas` live here. The release workflow publishes t
 ### Fixed
 
 - A dropped push connection no longer makes accessories briefly unavailable: state stays fresh for one polling window while the plugin refreshes and reconnects.
-- Reconnect refreshes read the cloud's cached state once a status time is known.
+- Refreshes around a push drop and reconnect read the cloud's cached state once a status time is known, instead of asking the panel every two minutes.
 
 ### Added
 

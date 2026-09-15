@@ -320,10 +320,7 @@ export class SiteCoordinator {
             this.#stream.lastFailure = undefined;
             this.changed();
             // State may have changed while disconnected; read it once the stream is listening.
-            // Once a status time is known the cloud cache is as current as the panel for this.
-            if (Number.isFinite(this.#lastPushedStatusMs))
-              this.#notBefore = Math.max(this.#notBefore ?? -Infinity, this.#lastPushedStatusMs);
-            this.refresh();
+            this.refreshFromCache();
           },
           onUpdate: (update) => {
             this.pushed(update);
@@ -349,7 +346,7 @@ export class SiteCoordinator {
         if (this.#freshUntil !== undefined)
           this.#freshUntil = Math.min(this.#freshUntil, droppedAt + 3 * this.#intervalMs);
         this.changed();
-        this.refresh();
+        this.refreshFromCache();
       }
       failures =
         openedAt !== undefined && this.#scheduler.now() - openedAt >= stableConnectionMs
@@ -369,6 +366,16 @@ export class SiteCoordinator {
         this.#shutdown.signal.addEventListener('abort', done, { once: true });
       });
     }
+  }
+
+  /**
+   * Refresh around a stream open or drop. Once a pushed status time is known, the cloud cache is
+   * as current as the panel for this (observed: no escalations), so the read avoids the panel.
+   */
+  private refreshFromCache(): void {
+    if (Number.isFinite(this.#lastPushedStatusMs))
+      this.#notBefore = Math.max(this.#notBefore ?? -Infinity, this.#lastPushedStatusMs);
+    this.refresh();
   }
 
   private stopped(): boolean {
