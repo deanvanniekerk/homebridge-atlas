@@ -34,6 +34,9 @@ export interface PanelEvidence {
   readonly alarmStates: Readonly<Record<string, number>>;
   readonly zoneStatuses: Readonly<Record<string, number>>;
   readonly zoneTypes: Readonly<Record<string, number>>;
+  readonly zoneTroubles: Readonly<Record<string, number>>;
+  readonly partitionReadyStates: Readonly<Record<string, number>>;
+  readonly online: Readonly<Record<string, number>>;
 }
 
 export interface PanelState {
@@ -179,6 +182,9 @@ export function decodePanelState(
       alarmStates: histogram(partitionRecords, 'alarmState'),
       zoneStatuses: histogram(zoneRecords, 'status'),
       zoneTypes: histogram(zoneRecords, 'zoneType'),
+      zoneTroubles: histogram(zoneRecords, 'trouble'),
+      partitionReadyStates: histogram(partitionRecords, 'readyState'),
+      online: histogram(isRecord(value) ? [value.state] : [], 'isOnline'),
     }),
   });
 }

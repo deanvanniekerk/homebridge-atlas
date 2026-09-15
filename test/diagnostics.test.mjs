@@ -12,7 +12,7 @@ const secretName = 'Synthetic Private Bedroom PIR';
 function snapshot(overrides = {}) {
   const raw = panel({
     zones: [
-      { zoneID: 1, zoneName: secretName, zoneType: 3, status: 1, extra: 'private' },
+      { zoneID: 1, zoneName: secretName, zoneType: 3, status: 1, trouble: 0, extra: 'private' },
       { zoneID: 2, zoneName: 'Door', zoneType: 1, status: 0 },
     ],
   }).response;
@@ -49,6 +49,8 @@ test('debug reports are sanitized, bounded to one per five minutes and off by de
   assert.deepEqual(report.panel.zones, { count: 2, conditions: { triggered: 1, normal: 1 } });
   assert.deepEqual(report.panel.evidence.zoneStatuses, { 1: 1, 0: 1 });
   assert.deepEqual(report.panel.evidence.zoneTypes, { 3: 1, 1: 1 });
+  assert.deepEqual(report.panel.evidence.zoneTroubles, { 0: 1, undefined: 1 });
+  assert.deepEqual(report.panel.evidence.online, { undefined: 1 });
   assert.deepEqual(report.panel.evidence.zoneFields, [
     'extra',
     'status',

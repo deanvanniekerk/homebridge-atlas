@@ -15,12 +15,19 @@
 ## Actual-account evidence
 
 - 2026-09-15: `POST /webapi/api/auth/login` with an empty body returned HTTP 200 and the envelope `{ validationErrors, errorText, errorTextCodeID, status: 500, response: null }`, matching the client's in-body status handling. No credentials were used.
+- 2026-09-15, `0.1.0-alpha.0` on the owner's iHost (ARMv7, Node 22.23.2, Homebridge 2.4.0), child bridge, control disabled, debug on:
+  - Sign-in, single-site selection and PIN session succeeded on first start; state `source: panel`; no warnings.
+  - One partition: `armedState` 1 (disarmed), `alarmState` 0, `exitDelayTO` 0, matching the Atlas web UI.
+  - 26 zones decoded with no rejected records: `status` 0 ×23, 1 ×1, 2 ×2, consistent with the web UI's bypassed and open zones. `zoneType` was 256 for every zone, so it cannot distinguish motion from contact; name-based defaults remain.
+  - Additional fields present: zone `trouble`, `part`, `partAssocMask`; partition `readyState`, `groups`, `lastArmFailReasons`; status `systemReady`, `armNotAllowed`, `disarmNotAllowed`, `acLost`, `batteryLow`, `trouble`; state `isOnline`, `lastStatusUpdate`. Their value semantics are not yet decoded.
+  - 27 accessories registered (1 Security System, 16 motion, 10 contact sensors).
 - The web UI route was observed read-only on a live account; see [research](research/riscocloud-webui-api.md).
 
 ## Remaining evidence
 
-1. Sign-in, site selection and PIN session against the owner's account, with a debug report confirming `armedState`, zone `status` and `zoneType` values.
-2. A multi-day read-only soak on the owner's Homebridge (iHost, ARMv7, Node 22.23.2): restarts, freshness and recovery.
-3. **Supervised command test** with the owner present: partial arm → disarm → full arm → disarm. Record confirmation timing, exit delay and any `armFailures`-style rejection when a zone is open.
+1. Owner comparison of Apple Home zone states with the Atlas app, including an open door and a bypassed zone.
+2. Value semantics for zone `trouble`, partition `readyState` and state `isOnline` (see the extended diagnostic evidence) before mapping them to HAP fault and offline status.
+3. A multi-day read-only soak on the owner's Homebridge (iHost, ARMv7, Node 22.23.2): restarts, freshness and recovery.
+4. **Supervised command test** with the owner present: partial arm → disarm → full arm → disarm. Record confirmation timing, exit delay and any `armFailures`-style rejection when a zone is open.
 
 Keep only current results here. Raw private observations stay outside the repository.
