@@ -64,11 +64,15 @@ Follow the same layering as the CENTSYS and AquaTemp plugins:
 - An arm that returns `armFailures` is reported as rejected. Zones are never bypassed automatically.
 - Disarm is never retried when the outcome is uncertain.
 
+## Route decision
+
+The Atlas app is **Atlas24**, published under RISCO's own package namespace (`com.riscogroup.atlas`), and the owner signs in to it with the same credentials as the web UI. That it uses the same `webapi` as iRISCO is an inference until `npm run diagnose` succeeds. The plugin therefore uses the RISCO Cloud mobile API (`webapi`), whose typed partition and zone fields avoid the web UI's localized strings and delta polling. The web UI research is kept as the fallback route.
+
 ## Next implementation steps
 
-1. **Confirm the login flow (owner-run).** Capture the `/SiteLogin` form post fields, then choose a route: run a read-only script against `webapi` `auth/login` + `GetState`. If it works, prefer `webapi`, and keep the web UI decoders as a documented fallback.
-2. **Transport client** for the chosen route, tested against a local fake server with synthetic fixtures. Cover login, reads and session-expiry recovery.
-3. **Coordinator** with polling, delta merging, expiry and backoff.
-4. **Platform and read-only accessories** (partition state plus zone sensors), installed on the owner's Homebridge for a soak test.
-5. **Owner-supervised arm/disarm test:** partial arm, then disarm, then full arm, then disarm, with the owner present. Record the results in `docs/VALIDATION.md`.
-6. Enable `SecuritySystemTargetState` writes behind the `enableControl` config flag. Add `config.schema.json`, CHANGELOG, the release workflow and publishing, mirroring CENTSYS.
+1. ✅ Transport client, panel model, coordinator, platform and accessories against a synthetic cloud ([architecture](ARCHITECTURE.md)).
+2. **Owner-run `npm run diagnose`** to confirm the envelope, `state.status` fields, `armedState`/zone `status` values and `zoneType` codes. Correct the model if any differ.
+3. Install a packed build on the owner's Homebridge with `enableControl: false` and soak-test state and freshness.
+4. **Owner-supervised command test:** partial arm → disarm → full arm → disarm, recording confirmation timing and exit delay in `docs/VALIDATION.md`.
+5. Consider the server-sent events stream (`ControlPanel/sse/connect`) to replace polling once the read path is proven.
+6. Release preparation mirroring the sibling plugins: CHANGELOG, release workflow, ARMv7 lane and npm trusted publishing.
