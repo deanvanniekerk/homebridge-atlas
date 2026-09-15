@@ -10,6 +10,7 @@ export class AtlasGateway implements PanelGateway {
   readonly #client: RiscoClient;
   readonly #now: () => number;
   #rejectedShape: unknown;
+  readonly #reads = { panel: 0, cloud: 0, lastDurationMs: null as number | null };
 
   constructor(client: RiscoClient, options: { now?: () => number } = {}) {
     this.#client = client;
@@ -21,8 +22,11 @@ export class AtlasGateway implements PanelGateway {
   }
 
   async read(signal: AbortSignal): Promise<PanelState> {
+    const started = this.#now();
     const result = await this.#client.state({ signal });
     signal.throwIfAborted();
+    this.#reads[result.fromControlPanel ? 'panel' : 'cloud'] += 1;
+    this.#reads.lastDurationMs = Math.max(0, Math.round(this.#now() - started));
     try {
       const panel = decodePanelState(result.value, {
         siteId: result.siteId,
@@ -36,6 +40,11 @@ export class AtlasGateway implements PanelGateway {
         this.#rejectedShape = { stage: 'state', shape: shapeOf(result.value) };
       throw error;
     }
+  }
+
+  /** Successful reads by source since start, and the latest read duration. */
+  readStats(): { panel: number; cloud: number; lastDurationMs: number | null } {
+    return { ...this.#reads };
   }
 
   /** Values-free structure of the latest reply that did not decode, for debug diagnostics. */

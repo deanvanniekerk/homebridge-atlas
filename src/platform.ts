@@ -103,6 +103,7 @@ export class AtlasPlatform implements DynamicPlatformPlugin {
           homebridgeVersion: api.serverVersion,
           debug: this.#config.debug,
           rejectedShape: () => gateway.rejectedShape(),
+          readStats: () => gateway.readStats(),
         },
       );
       this.#coordinator = new SiteCoordinator(gateway, {
@@ -275,7 +276,7 @@ export class AtlasPlatform implements DynamicPlatformPlugin {
     // The initial empty snapshot is neither failure nor recovery evidence.
     if (snapshot.status === 'unavailable' && snapshot.failure === undefined) return;
     const fault = snapshot.status !== 'healthy' || snapshot.failure !== undefined;
-    const signature = `${snapshot.status}/${snapshot.failure ?? 'none'}`;
+    const signature = `${snapshot.status}/${snapshot.failure ?? 'none'}/${String(snapshot.failureCode)}`;
     if (this.#logged?.signature === signature) return;
     const previous = this.#logged;
     this.#logged = { signature, fault };
@@ -284,8 +285,10 @@ export class AtlasPlatform implements DynamicPlatformPlugin {
       return;
     }
     const hint = snapshot.failure === undefined ? '' : ` ${hints[snapshot.failure] ?? ''}`;
+    const code =
+      snapshot.failureCode === undefined ? '' : ` (vendor result ${String(snapshot.failureCode)})`;
     this.#log.warn(
-      `Atlas site ${snapshot.status}; ${snapshot.failure ?? 'no cloud failure'}.${hint}`.trimEnd(),
+      `Atlas site ${snapshot.status}; ${snapshot.failure ?? 'no cloud failure'}${code}.${hint}`.trimEnd(),
     );
   }
 }

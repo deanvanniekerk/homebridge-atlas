@@ -31,6 +31,8 @@ export interface SiteSnapshot {
   readonly panel: PanelState | undefined;
   readonly lastSuccessMs: number | undefined;
   readonly failure: CloudErrorCategory | 'unconfirmed' | undefined;
+  /** Vendor result code of the latest failure, when the cloud supplied one. */
+  readonly failureCode: number | undefined;
   readonly retryAtMs: number;
   /** Requested arm states awaiting confirmation, by partition id. */
   readonly targets: ReadonlyMap<number, ArmState>;
@@ -58,6 +60,7 @@ export class SiteCoordinator {
   #panel: PanelState | undefined;
   #lastSuccessMs: number | undefined;
   #failure: CloudErrorCategory | 'unconfirmed' | undefined;
+  #failureCode: number | undefined;
   #retryAt = 0;
   #revision = 0;
   #started = false;
@@ -120,6 +123,7 @@ export class SiteCoordinator {
       panel: this.#panel,
       lastSuccessMs: this.#lastSuccessMs,
       failure: this.#failure,
+      failureCode: this.#failure === undefined ? undefined : this.#failureCode,
       retryAtMs: this.#retryAt,
       targets: new Map([...this.#pending].map(([id, pending]) => [id, pending.target])),
     });
@@ -199,6 +203,7 @@ export class SiteCoordinator {
           if (this.#pending.get(partitionId) !== pending) return;
           this.#pending.delete(partitionId);
           this.#failure = 'unconfirmed';
+          this.#failureCode = undefined;
           this.changed();
         }),
       };
@@ -256,8 +261,10 @@ export class SiteCoordinator {
       }
     } catch (error) {
       this.retainRetry(error);
-      if (!this.#shutdown.signal.aborted)
+      if (!this.#shutdown.signal.aborted) {
         this.#failure = error instanceof CloudError ? error.category : 'invalid-response';
+        this.#failureCode = error instanceof CloudError ? error.vendorResult : undefined;
+      }
     } finally {
       this.#polling = false;
       this.changed();

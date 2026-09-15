@@ -21,6 +21,7 @@ function snapshot(overrides = {}) {
     panel: decodePanelState(raw, { siteId: 7, fromControlPanel: true, observedAtMs: 1000 }),
     lastSuccessMs: 1000,
     failure: undefined,
+    failureCode: undefined,
     retryAtMs: 0,
     targets: new Map(),
     ...overrides,
@@ -33,7 +34,11 @@ test('debug reports are sanitized, bounded to one per five minutes and off by de
   const options = { now: () => now, pluginVersion: '0.1.0-alpha.0', homebridgeVersion: '2.4.0' };
   new Diagnostics((line) => lines.push(line), options).observe(snapshot());
   assert.equal(lines.length, 0);
-  const diagnostics = new Diagnostics((line) => lines.push(line), { ...options, debug: true });
+  const diagnostics = new Diagnostics((line) => lines.push(line), {
+    ...options,
+    debug: true,
+    readStats: () => ({ panel: 3, cloud: 1, lastDurationMs: 1200 }),
+  });
   diagnostics.observe(snapshot());
   diagnostics.observe(snapshot());
   assert.equal(lines.length, 1);
@@ -43,6 +48,8 @@ test('debug reports are sanitized, bounded to one per five minutes and off by de
   const report = JSON.parse(lines[0].replace('Diagnostic report: ', ''));
   assert.equal(report.runtime.plugin, '0.1.0-alpha.0');
   assert.equal(report.site.lastSuccessAgeMs, 4000);
+  assert.equal(report.site.failureCode, null);
+  assert.deepEqual(report.site.reads, { panel: 3, cloud: 1, lastDurationMs: 1200 });
   assert.deepEqual(report.panel.partitions, [
     { id: 0, arm: 'disarmed', alarm: 'false', exitDelaySeconds: '0' },
   ]);

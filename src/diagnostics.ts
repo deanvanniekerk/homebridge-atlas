@@ -5,6 +5,8 @@ import { systemScheduler } from './scheduler.js';
 interface DiagnosticOptions {
   /** Values-free structure of a reply that failed to decode, when available. */
   rejectedShape?: () => unknown;
+  /** Successful reads by source and the latest read duration. */
+  readStats?: () => { panel: number; cloud: number; lastDurationMs: number | null };
   now?: () => number;
   pluginVersion: string;
   homebridgeVersion: string;
@@ -55,12 +57,14 @@ export class Diagnostics {
   readonly #write: (message: string) => void;
   readonly #debug: boolean;
   readonly #rejectedShape: (() => unknown) | undefined;
+  readonly #readStats: DiagnosticOptions['readStats'];
   #lastReportMs = -Infinity;
 
   constructor(write: (message: string) => void, options: DiagnosticOptions) {
     this.#write = write;
     this.#debug = options.debug === true;
     this.#rejectedShape = options.rejectedShape;
+    this.#readStats = options.readStats;
     this.#now = options.now ?? (() => systemScheduler.now());
     this.#runtime = Object.freeze({
       plugin: version(options.pluginVersion),
@@ -84,9 +88,11 @@ export class Diagnostics {
       site: {
         status: snapshot.status,
         failure: snapshot.failure ?? null,
+        failureCode: snapshot.failureCode ?? null,
         lastSuccessAgeMs: elapsed(now, snapshot.lastSuccessMs),
         retryInMs: elapsed(snapshot.retryAtMs, now),
         pendingTargets: Object.fromEntries(snapshot.targets),
+        reads: this.#readStats?.() ?? null,
       },
       panel: snapshot.panel ? panelReport(snapshot.panel) : null,
       rejectedShape:

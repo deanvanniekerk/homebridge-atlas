@@ -132,13 +132,17 @@ export class RiscoClient {
       this.pauseIfDenied(error, false);
       let safe = error instanceof CloudError ? error : new CloudError('invalid-request');
       if (dispatched && this.isTransient(safe)) safe = this.backoff(safe);
-      throw new CloudError(safe.category, safe.retryAfterMs, dispatched);
+      throw new CloudError(safe.category, safe.retryAfterMs, dispatched, safe.vendorResult);
     } finally {
       budget.dispose();
     }
   }
 
-  /** Reads are safe to repeat: a panel timeout falls back once to the cloud's cached state. */
+  /**
+   * Reads are safe to repeat. When the live panel read times out, either as vendor result 72 or
+   * by exceeding this client's request deadline, the read falls back once to the cloud's cached
+   * state within the same budget instead of backing off.
+   */
   async state(options: { signal?: AbortSignal } = {}): Promise<StateResult> {
     this.checkAccess();
     const budget = new Budget(this.#readBudget, this.#clock, [
@@ -168,8 +172,9 @@ export class RiscoClient {
           this.pauseIfDenied(error, false);
           if (
             error instanceof CloudError &&
-            error.category === 'panel-timeout' &&
-            fromControlPanel
+            fromControlPanel &&
+            (error.category === 'panel-timeout' ||
+              (error.category === 'timeout' && budget.remaining() > 0 && !budget.signal.aborted))
           ) {
             fromControlPanel = false;
             continue;
