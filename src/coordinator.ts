@@ -58,6 +58,10 @@ export interface StreamStatus {
   readonly lastFailure: CloudErrorCategory | undefined;
   /** Latest `IsOffline` pushed by the cloud. */
   readonly offline: boolean | undefined;
+  /** How long the most recently ended connection stayed open. */
+  readonly lastConnectionMs: number | undefined;
+  /** Time without a pushed update before the most recently ended connection dropped. */
+  readonly lastDropSilenceMs: number | undefined;
 }
 
 const commandBudgetMs = 20_000;
@@ -107,6 +111,8 @@ export class SiteCoordinator {
   #notBefore: number | undefined;
   #pushReceivedAt: number | undefined;
   #lastPushedStatusMs = -Infinity;
+  /** State is presented until this time; set on success and shortened when push drops. */
+  #freshUntil: number | undefined;
   #lastPollStartedAt = -Infinity;
 
   constructor(
@@ -125,6 +131,8 @@ export class SiteCoordinator {
       updates: 0,
       lastUpdateMs: undefined,
       lastUpdateLatencyMs: undefined,
+      lastConnectionMs: undefined,
+      lastDropSilenceMs: undefined,
       lastFailure: undefined,
       offline: undefined,
     };
@@ -157,8 +165,7 @@ export class SiteCoordinator {
 
   snapshot(): SiteSnapshot {
     const now = this.#scheduler.now();
-    const fresh =
-      this.#lastSuccessMs !== undefined && now - this.#lastSuccessMs < this.freshnessWindow();
+    const fresh = this.#freshUntil !== undefined && now < this.#freshUntil;
     const status: SiteStatus =
       this.#failure === 'invalid-credentials' ||
       this.#failure === 'invalid-pin' ||
@@ -313,6 +320,9 @@ export class SiteCoordinator {
             this.#stream.lastFailure = undefined;
             this.changed();
             // State may have changed while disconnected; read it once the stream is listening.
+            // Once a status time is known the cloud cache is as current as the panel for this.
+            if (Number.isFinite(this.#lastPushedStatusMs))
+              this.#notBefore = Math.max(this.#notBefore ?? -Infinity, this.#lastPushedStatusMs);
             this.refresh();
           },
           onUpdate: (update) => {
@@ -328,8 +338,16 @@ export class SiteCoordinator {
       if (this.stopped()) return;
       const { openedAt, retryAfterMs } = connection;
       if (openedAt !== undefined) {
+        const droppedAt = this.#scheduler.now();
         this.#stream.connected = false;
         this.#stream.disconnects += 1;
+        this.#stream.lastConnectionMs = droppedAt - openedAt;
+        this.#stream.lastDropSilenceMs =
+          droppedAt - Math.max(openedAt, this.#stream.lastUpdateMs ?? -Infinity);
+        // A drop is not evidence that state changed: keep it for one polling window while the
+        // immediate refresh and reconnect run.
+        if (this.#freshUntil !== undefined)
+          this.#freshUntil = Math.min(this.#freshUntil, droppedAt + 3 * this.#intervalMs);
         this.changed();
         this.refresh();
       }
@@ -394,6 +412,7 @@ export class SiteCoordinator {
       if (this.#shutdown.signal.aborted) return;
       this.#panel = panel;
       this.#lastSuccessMs = panel.observedAtMs;
+      this.#freshUntil = panel.observedAtMs + this.freshnessWindow();
       if (
         this.#notBefore !== undefined &&
         (this.#notBefore === notBefore ||
@@ -453,8 +472,8 @@ export class SiteCoordinator {
     for (const subscriber of this.#subscribers) subscriber.wake();
     this.#cancelFreshness?.();
     this.#cancelFreshness = undefined;
-    if (this.#lastSuccessMs === undefined) return;
-    const expires = this.#lastSuccessMs + this.freshnessWindow();
+    if (this.#freshUntil === undefined) return;
+    const expires = this.#freshUntil;
     const now = this.#scheduler.now();
     if (expires > now)
       this.#cancelFreshness = this.#scheduler.after(expires - now, () => {

@@ -1,6 +1,6 @@
 {
   "name": "homebridge-atlas",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "private": true,
   "description": "Atlas Home Security (RISCO Cloud) detector state and arming for Homebridge",
   "type": "module",

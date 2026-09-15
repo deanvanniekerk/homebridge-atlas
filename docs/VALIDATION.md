@@ -22,12 +22,16 @@
   - Additional fields present: zone `trouble`, `part`, `partAssocMask`; partition `readyState`, `groups`, `lastArmFailReasons`; status `systemReady`, `armNotAllowed`, `disarmNotAllowed`, `acLost`, `batteryLow`, `trouble`; state `isOnline`, `lastStatusUpdate`. Their value semantics are not yet decoded.
   - 27 accessories registered (1 Security System, 16 motion, 10 contact sensors).
 - 2026-09-15: `GET /webapi/api/wuws/site/0/ControlPanel/sse/connect` without credentials returned `401 Unauthorized` with `WWW-Authenticate: Bearer` and a plain-text body, confirming the push endpoint exists.
+- 2026-09-15, `0.1.0-alpha.2` push on the owner's account:
+  - The stream connected 2 s after start and delivered a `runtimeUpdate` immediately after opening; `IsOffline` was false and `lastStatusUpdate` was ISO UTC.
+  - Opening and closing the front door produced two further `runtimeUpdate` events. Both refreshes read the cloud cache with no panel escalation; push-to-state latency was 535 ms.
+  - The stream then failed as a connection error 120 s after the last update (not the client's idle timeout). The plugin reconnected within a second, but the shorter polling freshness window made state briefly stale; `0.1.0-alpha.3` keeps state fresh for one polling window after a drop.
 - The web UI route was observed read-only on a live account; see [research](research/riscocloud-webui-api.md).
 
 ## Remaining evidence
 
 1. Owner comparison of Apple Home zone states with the Atlas app, including an open door and a bypassed zone.
-2. Push on the owner's account: whether zone changes (not only arming) produce `runtimeUpdate`, push-to-state latency, the `lastStatusUpdate` timestamp format, whether the stream sends keep-alives, and reconnect frequency.
+2. Push reconnect behaviour over a multi-hour period (connection lengths and silence before drops) and arming/alarm pushes.
 3. Value semantics for zone `trouble`, partition `readyState` and state `isOnline` (see the extended diagnostic evidence) before mapping them to HAP fault and offline status.
 4. A multi-day read-only soak on the owner's Homebridge (iHost, ARMv7, Node 22.23.2): restarts, freshness and recovery.
 5. **Supervised command test** with the owner present: partial arm → disarm → full arm → disarm. Record confirmation timing, exit delay and any `armFailures`-style rejection when a zone is open.
