@@ -1,7 +1,8 @@
 import { createInterface } from 'node:readline/promises';
 import { Writable } from 'node:stream';
 import { RiscoClient } from './cloud-client.js';
-import { CloudError, isRecord } from './cloud-error.js';
+import { CloudError } from './cloud-error.js';
+import { panelReport } from './diagnostics.js';
 import { decodePanelState } from './panel-model.js';
 
 // Read-only owner check of the RISCO Cloud mobile API. It never sends arm, disarm or bypass
@@ -11,25 +12,6 @@ const shutdown = new AbortController();
 process.once('SIGINT', () => {
   shutdown.abort();
 });
-
-function keys(value: unknown): string[] {
-  return isRecord(value) ? Object.keys(value).sort() : [];
-}
-
-function fieldUnion(items: unknown): string[] {
-  return Array.isArray(items) ? [...new Set(items.flatMap(keys))].sort() : [];
-}
-
-function histogram(items: unknown, field: string): Record<string, number> {
-  const counts: Record<string, number> = {};
-  if (!Array.isArray(items)) return counts;
-  for (const item of items) {
-    const raw = isRecord(item) ? item[field] : undefined;
-    const key = typeof raw === 'number' || typeof raw === 'boolean' ? String(raw) : typeof raw;
-    counts[key] = (counts[key] ?? 0) + 1;
-  }
-  return counts;
-}
 
 async function main(): Promise<void> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
@@ -78,42 +60,14 @@ async function main(): Promise<void> {
       for (const site of sites) process.stdout.write(`  site id ${String(site.id)}\n`);
 
     const result = await client.state({ signal: shutdown.signal });
-    const status =
-      isRecord(result.value) && isRecord(result.value.state) ? result.value.state.status : {};
-    const raw = isRecord(status) ? status : {};
     const state = decodePanelState(result.value, {
       siteId: result.siteId,
       fromControlPanel: result.fromControlPanel,
       observedAtMs: Date.now(),
     });
-    const reading = (value: { available: boolean; value?: unknown; reason?: string }) =>
-      value.available ? String(value.value) : `unavailable(${String(value.reason)})`;
-
-    const report = [
-      `PIN session opened. State source: ${state.source}`,
-      `Response keys: ${keys(result.value).join(', ')}`,
-      `state keys: ${keys(isRecord(result.value) ? result.value.state : undefined).join(', ')}`,
-      `state.status keys: ${keys(raw).join(', ')}`,
-      `Partitions: ${String(state.partitions.length)}`,
-      ...state.partitions.map(
-        (partition) =>
-          `  partition ${String(partition.id)}: arm=${reading(partition.arm)} alarm=${reading(partition.alarm)} exitDelay=${reading(partition.exitDelaySeconds)}`,
-      ),
-      `  partition fields: ${fieldUnion(raw.partitions).join(', ')}`,
-      `  armedState values: ${JSON.stringify(histogram(raw.partitions, 'armedState'))}`,
-      `Zones: ${String(state.zones.length)} (rejected records: ${String(state.rejectedRecords)})`,
-      `  zone fields: ${fieldUnion(raw.zones).join(', ')}`,
-      `  status values: ${JSON.stringify(histogram(raw.zones, 'status'))}`,
-      `  zoneType values: ${JSON.stringify(histogram(raw.zones, 'zoneType'))}`,
-      `  decoded conditions: ${JSON.stringify(
-        state.zones.reduce<Record<string, number>>((counts, zone) => {
-          const key = reading(zone.condition);
-          counts[key] = (counts[key] ?? 0) + 1;
-          return counts;
-        }, {}),
-      )}`,
-    ];
-    process.stdout.write(`${report.join('\n')}\n`);
+    process.stdout.write(
+      `PIN session opened. Panel report:\n${JSON.stringify(panelReport(state), null, 2)}\n`,
+    );
   } catch (error) {
     const message = error instanceof CloudError ? error.message : 'The check failed unexpectedly.';
     const category = error instanceof CloudError ? ` [${error.category}]` : '';

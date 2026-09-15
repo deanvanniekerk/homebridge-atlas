@@ -33,3 +33,16 @@ jobs:
       - run: npm install --global npm@10.9.8
       - run: npm ci --no-audit --no-fund
       - run: npm run check
+
+  armv7:
+    name: Node 22.23.2 / Linux ARMv7 (emulated)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
+        with:
+          platforms: arm
+      - run: bash scripts/check-armv7.sh

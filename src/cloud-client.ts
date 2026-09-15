@@ -1,4 +1,5 @@
 import { post } from './cloud-http.js';
+import { shapeOf } from './shape.js';
 import { CloudError } from './cloud-error.js';
 import { Budget, deadline, systemClock, type CloudClock } from './cloud-time.js';
 import {
@@ -51,6 +52,7 @@ export class RiscoClient {
   #notBefore = 0;
   #transient: CloudError | undefined;
   #invalidations: number[] = [];
+  #rejectedShape: { stage: string; shape: unknown } | undefined;
 
   constructor(credentials: Credentials, options: ClientOptions = {}) {
     this.#credentials = credentialsFor(credentials);
@@ -59,6 +61,11 @@ export class RiscoClient {
     this.#requestTimeout = deadline(options.requestTimeoutMs, 15_000);
     this.#readBudget = deadline(options.readBudgetMs, 45_000);
     this.#writeBudget = deadline(options.writeBudgetMs, 20_000);
+  }
+
+  /** Values-free structure of the latest authentication reply that did not decode. */
+  rejectedShape(): { stage: string; shape: unknown } | undefined {
+    return this.#rejectedShape;
   }
 
   close(): void {
@@ -74,8 +81,12 @@ export class RiscoClient {
       ...(options.signal ? [options.signal] : []),
     ]);
     try {
-      const token = accessTokenFrom(await this.request(paths.login, this.userBody(), budget));
-      return sitesFrom(await this.request(paths.sites, {}, budget, token));
+      const token = this.decode(
+        'login',
+        await this.request(paths.login, this.userBody(), budget),
+        accessTokenFrom,
+      );
+      return this.decode('sites', await this.request(paths.sites, {}, budget, token), sitesFrom);
     } catch (error) {
       this.pauseIfDenied(error);
       throw error;
@@ -264,6 +275,18 @@ export class RiscoClient {
     }
   }
 
+  private decode<T>(stage: string, value: unknown, decoder: (value: unknown) => T): T {
+    try {
+      const result = decoder(value);
+      this.#rejectedShape = undefined;
+      return result;
+    } catch (error) {
+      if (error instanceof CloudError && error.category === 'invalid-response')
+        this.#rejectedShape = { stage, shape: shapeOf(value) };
+      throw error;
+    }
+  }
+
   private userBody(): { userName: string; password: string } {
     return { userName: this.#credentials.username, password: this.#credentials.password };
   }
@@ -271,20 +294,26 @@ export class RiscoClient {
   private async login(): Promise<Session> {
     const budget = new Budget(3 * this.#requestTimeout, this.#clock, [this.#shutdown.signal]);
     try {
-      const token = accessTokenFrom(await this.request(paths.login, this.userBody(), budget));
+      const token = this.decode(
+        'login',
+        await this.request(paths.login, this.userBody(), budget),
+        accessTokenFrom,
+      );
       const site = selectSite(
-        sitesFrom(await this.request(paths.sites, {}, budget, token)),
+        this.decode('sites', await this.request(paths.sites, {}, budget, token), sitesFrom),
         this.#credentials.siteId,
       );
       let sessionId: string;
       try {
-        sessionId = sessionIdFrom(
+        sessionId = this.decode(
+          'siteLogin',
           await this.request(
             paths.siteLogin(site.id),
             siteLoginBody(this.#credentials.pin),
             budget,
             token,
           ),
+          sessionIdFrom,
         );
       } catch (error) {
         // Panels lock their keypad after repeated wrong codes: any definite rejection of the

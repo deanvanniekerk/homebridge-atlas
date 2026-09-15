@@ -10,6 +10,7 @@ export interface AtlasConfig {
   readonly pin: string;
   readonly siteId: number | undefined;
   readonly pollInterval: number;
+  readonly debug: boolean;
   readonly enableControl: boolean;
   readonly partialArmMode: 'stay' | 'night';
   readonly includeZones: boolean;
@@ -24,6 +25,7 @@ type Field =
   | 'pin'
   | 'siteId'
   | 'pollInterval'
+  | 'debug'
   | 'enableControl'
   | 'partialArmMode'
   | 'includeZones'
@@ -36,6 +38,7 @@ const messages: Record<Field, string> = {
   pin: 'Enter the panel user code (PIN) as 4–8 digits.',
   siteId: 'Site ID must be a whole number when set.',
   pollInterval: 'Poll interval must be a whole number from 10 to 300 seconds.',
+  debug: 'Debug must be true or false.',
   enableControl: 'Enable arming and disarming must be true or false.',
   partialArmMode: 'Partial arm mode must be "stay" or "night".',
   includeZones: 'Include zones must be true or false.',
@@ -119,6 +122,7 @@ export function parseConfig(input: unknown): AtlasConfig {
     pin: input.pin,
     siteId: input.siteId as number | undefined,
     pollInterval,
+    debug: optionalBoolean(input.debug, false, 'debug'),
     enableControl: optionalBoolean(input.enableControl, false, 'enableControl'),
     partialArmMode,
     includeZones: optionalBoolean(input.includeZones, true, 'includeZones'),

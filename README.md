@@ -30,7 +30,11 @@ See `config.schema.json` for all options.
 
 ## Documentation
 
+- [Installation](docs/INSTALLATION.md)
+- [Configuration](docs/CONFIGURATION.md)
+- [Validation](docs/VALIDATION.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [Releasing](docs/RELEASING.md)
 - [Feasibility and plan](docs/FEASIBILITY.md)
 - [RISCO Cloud web UI API (alternative route)](docs/research/riscocloud-webui-api.md)
 - [Contributing](CONTRIBUTING.md)
