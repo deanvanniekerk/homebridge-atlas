@@ -54,6 +54,7 @@ test('debug reports are sanitized, bounded to one per five minutes and off by de
   assert.deepEqual(report.panel.evidence.zoneFields, [
     'extra',
     'status',
+    'trouble',
     'zoneID',
     'zoneName',
     'zoneType',
