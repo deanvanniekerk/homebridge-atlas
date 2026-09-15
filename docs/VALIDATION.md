@@ -26,6 +26,10 @@
   - The stream connected 2 s after start and delivered a `runtimeUpdate` immediately after opening; `IsOffline` was false and `lastStatusUpdate` was ISO UTC.
   - Opening and closing the front door produced two further `runtimeUpdate` events. Both refreshes read the cloud cache with no panel escalation; push-to-state latency was 535 ms.
   - The stream then failed as a connection error 120 s after the last update (not the client's idle timeout). The plugin reconnected within a second, but the shorter polling freshness window made state briefly stale; `0.1.0-alpha.3` keeps state fresh for one polling window after a drop.
+- 2026-09-15, `0.1.0-alpha.4` on the owner's iHost (control disabled, push connected):
+  - Only the zone the web UI showed as faulted reports `StatusFault` in HomeKit (1 of 20 visible zone sensors); the Security System reports no fault while `isOnline` is true, including when state comes from the cloud cache.
+  - The diagnostic report shows `offline: false`, `online: true`, one zone fault, and partition `ready: false` with a door open.
+  - Arming refusal while not ready is covered by tests only; no arm or disarm request has been sent to the real panel.
 - The web UI route was observed read-only on a live account; see [research](research/riscocloud-webui-api.md).
 
 ## Remaining evidence
