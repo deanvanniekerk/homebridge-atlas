@@ -29,7 +29,13 @@
 - 2026-09-15, `0.1.0-alpha.4` on the owner's iHost (control disabled, push connected):
   - Only the zone the web UI showed as faulted reports `StatusFault` in HomeKit (1 of 20 visible zone sensors); the Security System reports no fault while `isOnline` is true, including when state comes from the cloud cache.
   - The diagnostic report shows `offline: false`, `online: true`, one zone fault, and partition `ready: false` with a door open.
-  - Arming refusal while not ready is covered by tests only; no arm or disarm request has been sent to the real panel.
+  - Arming refusal while not ready was then verified live in the supervised test below.
+- 2026-09-15, supervised command test on `0.1.0-alpha.4` with the owner present (monitored system, manual disarm ready), `enableControl` switched on, commands sent through Homebridge's accessory API:
+  - **Readiness evidence:** `readyState` was 0 while a door was open and 2 once every zone was closed.
+  - **Not-ready refusal:** with the Lounge Door open, a Home arm was refused by the plugin ("Arming refused: the panel is not ready"); the target reverted to Disarm and the owner confirmed the panel stayed disarmed.
+  - **Partial arm:** with all zones closed, Home (stay) arm was accepted in 4.9 s and confirmed by panel state in 6.1 s; the owner confirmed the app showed partially armed. No fault or warning was logged.
+  - **Disarm:** accepted in 3.4 s and confirmed in 4.6 s.
+  - **Full (away) arm:** not tested; the owner chose to stop before arming with interior PIRs live.
 - The web UI route was observed read-only on a live account; see [research](research/riscocloud-webui-api.md).
 
 ## Remaining evidence
@@ -38,6 +44,6 @@
 2. Push reconnect behaviour over a multi-hour period (connection lengths and silence before drops) and arming/alarm pushes.
 3. Readiness while all zones are closed (expected `readyState` 1) and an offline panel (`isOnline` false or pushed `IsOffline` true); neither has been observed yet.
 4. A multi-day read-only soak on the owner's Homebridge (iHost, ARMv7, Node 22.23.2): restarts, freshness and recovery.
-5. **Supervised command test** with the owner present: partial arm → disarm → full arm → disarm. Record confirmation timing, exit delay and any `armFailures`-style rejection when a zone is open.
+5. **Full (away) arm on the real panel:** exit-delay reporting, confirmation timing and alarm-free disarm. Partial arm, disarm and not-ready refusal are verified.
 
 Keep only current results here. Raw private observations stay outside the repository.

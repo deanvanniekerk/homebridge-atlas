@@ -8,7 +8,8 @@ import { ZoneSensor } from '../dist/zone-sensor.js';
 import { deferred, FakeScheduler } from './fake-scheduler.mjs';
 import { panel } from './fake-cloud.mjs';
 
-// Synthetic contract for fields observed on the owner's panel: readyState 0 with a door open,
+// Synthetic contract for fields observed on the owner's panel: readyState 0 with a door open and 2
+// with every zone closed,
 // isOnline true, and a boolean zone trouble flag on one faulted beam.
 function harness() {
   const scheduler = new FakeScheduler();
@@ -65,14 +66,24 @@ test('arming is refused locally while the partition is not ready; disarming is n
   h.coordinator.close();
 });
 
-test('an unknown readiness value does not block commands', async () => {
+test('readyState 2 is ready; unobserved values do not block commands', async () => {
   const h = harness();
-  h.raw.partition = { ...h.raw.partition, readyState: 7 };
+  h.raw.partition = { ...h.raw.partition, readyState: 2 };
   h.coordinator.start();
   await h.scheduler.advance(1000);
-  assert.equal(h.coordinator.partition(0).ready.available, false);
+  assert.deepEqual(h.coordinator.partition(0).ready, { available: true, value: true });
   await h.coordinator.arm(0, 'partial');
   assert.deepEqual(h.arms, [[0, 'partial']]);
+  for (const readyState of [1, 7]) {
+    const other = harness();
+    other.raw.partition = { ...other.raw.partition, readyState };
+    other.coordinator.start();
+    await other.scheduler.advance(1000);
+    assert.equal(other.coordinator.partition(0).ready.available, false, `readyState ${readyState}`);
+    await other.coordinator.arm(0, 'armed');
+    assert.deepEqual(other.arms, [[0, 'armed']]);
+    other.coordinator.close();
+  }
   h.coordinator.close();
 });
 
