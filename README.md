@@ -2,7 +2,7 @@
 
 A Homebridge plugin for **Atlas Home Security** and other RISCO Cloud alarm systems: partition arming, detector state, faults and push updates in Apple Home.
 
-Validated on one owner's panel through Homebridge 2.4.0 on an ARMv7 iHost. There, detector states, zone faults and push updates matched the Atlas app. A supervised test armed Home (partial), disarmed, and refused arming while a door was open. Full (Away) arming on real hardware is still pending. See [validation](docs/VALIDATION.md) and the [changelog](CHANGELOG.md).
+Stable release 1.0.0. Validated on one owner's panel through Homebridge 2.4.0 on an ARMv7 iHost. There, detector states, zone faults and push updates matched the Atlas app. A supervised test armed Home (partial), disarmed, and refused arming while a door was open. Full (Away) arming on real hardware is still pending. See [validation](docs/VALIDATION.md) and the [changelog](CHANGELOG.md).
 
 ## What it does
 
@@ -18,7 +18,7 @@ It uses the RISCO Cloud service that RISCO's apps use, with the email, password 
 
 Use Homebridge 2.4 or later with Node 22 or 24.
 
-1. In Homebridge, open **Plugins** and search for `homebridge-atlas`. While releases are prereleases, install the `alpha` version.
+1. In Homebridge, open **Plugins**, search for `homebridge-atlas` and install it.
 2. Open the plugin **Settings** and enter your Atlas email, password and panel user code.
 3. Click **Load detectors**, choose which detectors to show and their types, then click **Save**.
 4. Run the plugin as its own child bridge, restart it and add the bridge in Apple Home.

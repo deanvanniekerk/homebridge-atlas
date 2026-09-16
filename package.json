@@ -1,6 +1,6 @@
 {
   "name": "homebridge-atlas",
-  "version": "0.1.0-alpha.6",
+  "version": "1.0.0",
   "description": "Atlas Home Security (RISCO Cloud) detector state and arming for Homebridge",
   "type": "module",
   "main": "dist/index.js",
@@ -69,7 +69,7 @@
   },
   "publishConfig": {
     "access": "public",
-    "tag": "alpha",
+    "tag": "latest",
     "registry": "https://registry.npmjs.org/"
   },
   "dependencies": {

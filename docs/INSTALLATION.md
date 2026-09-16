@@ -7,7 +7,7 @@
 
 ## Install from npm
 
-In Homebridge UI, open **Plugins**, search for `homebridge-atlas` and install it. While releases are prereleases, choose the `alpha` version. Alternatively, run `npm install homebridge-atlas@alpha` in the npm environment Homebridge uses. npm installs the one runtime dependency (`@homebridge/plugin-ui-utils`); the plugin runs no install scripts and compiles nothing on the host.
+In Homebridge UI, open **Plugins**, search for `homebridge-atlas` and install it. Alternatively, run `npm install homebridge-atlas@latest` in the npm environment Homebridge uses. npm installs the one runtime dependency (`@homebridge/plugin-ui-utils`); the plugin runs no install scripts and compiles nothing on the host.
 
 ## Install a test build
 
