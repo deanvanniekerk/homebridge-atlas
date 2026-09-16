@@ -2,7 +2,7 @@
 
 A Homebridge plugin for **Atlas Home Security** and other RISCO Cloud alarm systems: partition arming, detector state, faults and push updates in Apple Home.
 
-Stable release 1.0.0. Validated on one owner's panel through Homebridge 2.4.0 on an ARMv7 iHost. There, detector states, zone faults and push updates matched the Atlas app. A supervised test armed Home (partial), disarmed, and refused arming while a door was open. Full (Away) arming on real hardware is still pending. See [validation](docs/VALIDATION.md) and the [changelog](CHANGELOG.md).
+Stable release 1.0.1. Validated on one owner's panel through Homebridge 2.4.0 on an ARMv7 iHost. There, detector states, zone faults and push updates matched the Atlas app. A supervised test armed Home (partial), disarmed, and refused arming while a door was open. Full (Away) arming on real hardware is still pending. See [validation](docs/VALIDATION.md) and the [changelog](CHANGELOG.md).
 
 ## What it does
 
@@ -13,6 +13,17 @@ Stable release 1.0.0. Validated on one owner's panel through Homebridge 2.4.0 on
 - **Optional arming and disarming**, off by default. Arming is refused while the panel reports it is not ready, and commands are refused while the panel is offline.
 
 It uses the RISCO Cloud service that RISCO's apps use, with the email, password and panel user code you use in the Atlas app.
+
+## Settings
+
+The settings page loads your detectors, lets you choose which ones appear in Apple Home and configures arming, updates and diagnostics.
+
+<table>
+  <tr>
+    <td valign="top"><img src="docs/images/configuration-account-detectors.png" alt="Atlas account and detector settings" /></td>
+    <td valign="top"><img src="docs/images/configuration-options.png" alt="Atlas arming, update and diagnostic options" /></td>
+  </tr>
+</table>
 
 ## Homebridge setup
 
