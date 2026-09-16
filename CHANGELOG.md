@@ -2,6 +2,21 @@
 
 Release notes for `homebridge-atlas` live here. The release workflow publishes the section matching `package.json` to GitHub, so the npm package, tag and GitHub release all use the same version and notes.
 
+## [1.0.0] - 2026-09-16
+
+### Added
+
+- First stable release of Atlas Home Security (RISCO Cloud) monitoring for Homebridge: a Security System per partition and a motion or contact sensor per detector, with bypassed detectors shown as inactive and zone trouble shown as a fault.
+- Push updates from the RISCO Cloud event stream, reading the cloud's cached state and falling back to polling when the stream is unavailable.
+- Settings page that signs in, loads the panel's detectors and sets which appear in Apple Home and their sensor type.
+- Optional arming and disarming, off by default: arming is refused while the panel reports it is not ready, commands are refused while the panel is offline, and no command is ever replayed.
+- Sanitized diagnostic reports with connection, read and push statistics.
+
+### Known limitations
+
+- Full (Away) arming has not been exercised on real hardware; partial arming, disarming and the not-ready refusal have. See [validation](docs/VALIDATION.md).
+- The panel's zone type does not distinguish motion from contact detectors, so sensor types come from detector names or the settings page.
+
 ## [0.1.0-alpha.6] - 2026-09-15
 
 ### Changed
