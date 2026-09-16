@@ -2,6 +2,12 @@
 
 Release notes for `homebridge-atlas` live here. The release workflow publishes the section matching `package.json` to GitHub, so the npm package, tag and GitHub release all use the same version and notes.
 
+## [1.0.2] - 2026-09-16
+
+### Changed
+
+- Host the README screenshots as GitHub assets so they render from an absolute URL without increasing the npm package size.
+
 ## [1.0.1] - 2026-09-16
 
 ### Changed

@@ -1,6 +1,6 @@
 {
   "name": "homebridge-atlas",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Homebridge plugin for Atlas Home Security and RISCO Cloud alarm systems",
   "type": "module",
   "main": "dist/index.js",
@@ -42,7 +42,6 @@
     "docs/ARCHITECTURE.md",
     "docs/CONFIGURATION.md",
     "docs/INSTALLATION.md",
-    "docs/images/",
     "docs/VALIDATION.md",
     "docs/RELEASING.md",
     "scripts/check-release.mjs",
