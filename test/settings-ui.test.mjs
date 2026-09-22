@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
 import { readFile } from 'node:fs/promises';
+import { test } from 'node:test';
 import vm from 'node:vm';
 
 // Execute the shipped settings page against a small DOM and Homebridge UI boundary.

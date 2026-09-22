@@ -11,7 +11,7 @@ npm ci
 npm run check
 ```
 
-`npm run check` runs formatting, lint, strict TypeScript checks and the test suite. `npm run format` applies formatting. Tests use local fake cloud servers and synthetic credentials; never point them at a real account or Homebridge installation.
+`npm run check` runs Biome formatting and lint checks, strict TypeScript checks and the test suite. `npm run format` applies Biome formatting; `npx biome check --write .` also organizes imports and applies safe lint fixes. Tests use local fake cloud servers and synthetic credentials; never point them at a real account or Homebridge installation.
 
 For a focused change, run `npm run build` then `node --test test/<file>.test.mjs`. Keep individual cases below 1,000 ms.
 
@@ -19,7 +19,7 @@ For a focused change, run `npm run build` then `node --test test/<file>.test.mjs
 
 ## Design and tests
 
-Keep Homebridge presentation separate from transport, panel decoding and site scheduling. See [architecture](docs/ARCHITECTURE.md). Preserve bounded retries, cancellation, PIN-lockout protection, fresh command validation and no command replay. Transport acknowledgment does not establish that the panel armed or disarmed.
+Keep Homebridge presentation separate from transport, panel decoding and site scheduling. See [architecture](docs/ARCHITECTURE.md) and the [project structure guide](docs/PROJECT_STRUCTURE.md). Preserve bounded retries, cancellation, PIN-lockout protection, fresh command validation and no command replay. Transport acknowledgment does not establish that the panel armed or disarmed.
 
 Add a regression at the boundary that owns the behavior. Prefer the real client/HAP code against local fakes over mocks that only assert their own calls. Keep fixtures small, sanitized and labeled as observed or synthetic.
 

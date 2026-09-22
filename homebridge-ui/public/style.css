@@ -62,6 +62,7 @@
   opacity: 0.5;
 }
 .atlas-setup [hidden] {
+  /* biome-ignore lint/complexity/noImportantStyles: Hidden controls must override their layout display rule. */
   display: none !important;
 }
 @media (max-width: 480px) {

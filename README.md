@@ -44,6 +44,7 @@ See [installation](docs/INSTALLATION.md) and [configuration](docs/CONFIGURATION.
 - [Configuration](docs/CONFIGURATION.md)
 - [Validation](docs/VALIDATION.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [Project structure and conventions](docs/PROJECT_STRUCTURE.md)
 - [Release checklist](RELEASE_STEPS.md) and [releasing](docs/RELEASING.md)
 - [Contributing](CONTRIBUTING.md)
 

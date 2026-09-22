@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { inspect } from 'node:util';
-import { RiscoClient } from '../dist/cloud-client.js';
+import { RiscoClient } from '../dist/cloud/cloud-client.js';
 import {
   credentials,
   failure,

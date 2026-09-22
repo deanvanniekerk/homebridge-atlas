@@ -1,5 +1,5 @@
-import { createServer } from 'node:http';
 import { once } from 'node:events';
+import { createServer } from 'node:http';
 
 // All responses and identities in this file are synthetic, not captured traffic. The envelope
 // and field names follow the RISCO Cloud mobile API as used by public integrations.

@@ -1,6 +1,6 @@
 import { readFileSync, realpathSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export const releaseVersionPattern =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-(alpha|beta)\.(0|[1-9]\d*))?$/;

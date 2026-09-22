@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { RiscoClient } from '../dist/cloud-client.js';
-import { Diagnostics } from '../dist/diagnostics.js';
-import { AtlasGateway } from '../dist/gateway.js';
-import { decodePanelState } from '../dist/panel-model.js';
-import { shapeOf } from '../dist/shape.js';
+import { RiscoClient } from '../dist/cloud/cloud-client.js';
+import { shapeOf } from '../dist/cloud/shape.js';
+import { Diagnostics } from '../dist/site/diagnostics.js';
+import { AtlasGateway } from '../dist/site/gateway.js';
+import { decodePanelState } from '../dist/site/panel-model.js';
 import { credentials, panel, reply, riscoRoutes, serverFor, success } from './fake-cloud.mjs';
 
 const secretName = 'Synthetic Private Bedroom PIR';

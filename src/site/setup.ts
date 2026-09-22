@@ -1,6 +1,6 @@
-import { RiscoClient, type ClientOptions } from './cloud-client.js';
-import { CloudError, isRecord } from './cloud-error.js';
-import { sensorKindFor, type SensorKind } from './configuration.js';
+import { type ClientOptions, RiscoClient } from '../cloud/cloud-client.js';
+import { CloudError, isRecord } from '../cloud/cloud-error.js';
+import { type SensorKind, sensorKindFor } from '../configuration.js';
 import { decodePanelState, type ZoneCondition } from './panel-model.js';
 import { systemScheduler } from './scheduler.js';
 

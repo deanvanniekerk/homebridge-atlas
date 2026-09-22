@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { RiscoClient } from '../dist/cloud-client.js';
-import { decodeRuntimeUpdate, EventStreamParser } from '../dist/cloud-events.js';
-import { AtlasGateway } from '../dist/gateway.js';
+import { RiscoClient } from '../dist/cloud/cloud-client.js';
+import { decodeRuntimeUpdate, EventStreamParser } from '../dist/cloud/cloud-events.js';
+import { AtlasGateway } from '../dist/site/gateway.js';
 import {
   credentials,
   panel,

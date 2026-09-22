@@ -32,7 +32,7 @@
     "url": "git+https://github.com/deanvanniekerk/homebridge-atlas.git"
   },
   "files": [
-    "dist/*.js",
+    "dist/**/*.js",
     "!dist/diagnose.js",
     "homebridge-ui/",
     "config.schema.json",
@@ -40,6 +40,7 @@
     "CHANGELOG.md",
     "LICENSE",
     "docs/ARCHITECTURE.md",
+    "docs/PROJECT_STRUCTURE.md",
     "docs/CONFIGURATION.md",
     "docs/INSTALLATION.md",
     "docs/VALIDATION.md",
@@ -51,24 +52,21 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --max-warnings 0",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
     "test": "npm run build && node --test --test-concurrency=1 test/*.test.mjs",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
+    "check:runtime": "npm run typecheck && npm test",
+    "check": "biome check . && npm run check:runtime",
     "diagnose": "npm run build && node dist/diagnose.js",
     "prepack": "npm run build",
     "prepublishOnly": "node scripts/check-release.mjs"
   },
   "devDependencies": {
-    "@eslint/js": "10.0.1",
+    "@biomejs/biome": "2.5.14",
     "@types/node": "22.20.1",
-    "eslint": "10.10.0",
-    "globals": "17.12.0",
     "homebridge": "2.4.0",
-    "prettier": "3.9.6",
-    "typescript": "6.0.3",
-    "typescript-eslint": "8.70.0"
+    "typescript": "6.0.3"
   },
   "homepage": "https://github.com/deanvanniekerk/homebridge-atlas#readme",
   "bugs": {

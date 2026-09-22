@@ -1,9 +1,9 @@
-import type { RiscoClient, StateResult } from './cloud-client.js';
-import { decodeRuntimeUpdate, type RuntimeUpdate } from './cloud-events.js';
+import type { RiscoClient, StateResult } from '../cloud/cloud-client.js';
+import { CloudError } from '../cloud/cloud-error.js';
+import { decodeRuntimeUpdate, type RuntimeUpdate } from '../cloud/cloud-events.js';
+import { shapeOf } from '../cloud/shape.js';
 import type { PanelGateway } from './coordinator.js';
-import { CloudError } from './cloud-error.js';
-import { decodePanelState, type ArmState, type PanelState } from './panel-model.js';
-import { shapeOf } from './shape.js';
+import { type ArmState, decodePanelState, type PanelState } from './panel-model.js';
 import { systemScheduler } from './scheduler.js';
 
 export interface ReadStats {

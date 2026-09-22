@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
-import { HomebridgeAPI } from '../node_modules/homebridge/dist/api.js';
-import { AtlasPlatform } from '../dist/platform.js';
+import { AtlasPlatform } from '../dist/homebridge/platform.js';
 import { PLATFORM_NAME, PLUGIN_NAME } from '../dist/settings.js';
-import { redirectCloud } from './redirect-cloud.mjs';
+import { HomebridgeAPI } from '../node_modules/homebridge/dist/api.js';
 import { credentials, panel, reply, riscoRoutes, serverFor, siteId } from './fake-cloud.mjs';
+import { redirectCloud } from './redirect-cloud.mjs';
 
 async function waitUntil(condition) {
   const deadline = Date.now() + 3_000;

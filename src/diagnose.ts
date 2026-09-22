@@ -1,9 +1,9 @@
 import { createInterface } from 'node:readline/promises';
 import { Writable } from 'node:stream';
-import { RiscoClient } from './cloud-client.js';
-import { CloudError } from './cloud-error.js';
-import { panelReport } from './diagnostics.js';
-import { decodePanelState } from './panel-model.js';
+import { RiscoClient } from './cloud/cloud-client.js';
+import { CloudError } from './cloud/cloud-error.js';
+import { panelReport } from './site/diagnostics.js';
+import { decodePanelState } from './site/panel-model.js';
 
 // Read-only owner check of the RISCO Cloud mobile API. It never sends arm, disarm or bypass
 // requests and prints only structure, counts and enumerated values: no names, tokens or PINs.

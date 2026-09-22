@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { decodePanelState } from '../dist/panel-model.js';
+import { decodePanelState } from '../dist/site/panel-model.js';
 import { panel } from './fake-cloud.mjs';
 
 const context = { siteId: 7, fromControlPanel: true, observedAtMs: 1000 };

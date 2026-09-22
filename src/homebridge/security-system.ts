@@ -1,7 +1,7 @@
 import type { API, Characteristic, PlatformAccessory } from 'homebridge';
-import { CloudError } from './cloud-error.js';
-import { CommandError, type SiteCoordinator } from './coordinator.js';
-import type { ArmState } from './panel-model.js';
+import { CloudError } from '../cloud/cloud-error.js';
+import { CommandError, type SiteCoordinator } from '../site/coordinator.js';
+import type { ArmState } from '../site/panel-model.js';
 
 export interface SecuritySystemOptions {
   readonly control: boolean;

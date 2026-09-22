@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { SecuritySystem } from '../dist/homebridge/security-system.js';
+import { ZoneSensor } from '../dist/homebridge/zone-sensor.js';
+import { SiteCoordinator } from '../dist/site/coordinator.js';
+import { decodePanelState } from '../dist/site/panel-model.js';
 import { HomebridgeAPI } from '../node_modules/homebridge/dist/api.js';
-import { SiteCoordinator } from '../dist/coordinator.js';
-import { decodePanelState } from '../dist/panel-model.js';
-import { SecuritySystem } from '../dist/security-system.js';
-import { ZoneSensor } from '../dist/zone-sensor.js';
-import { deferred, FakeScheduler } from './fake-scheduler.mjs';
 import { panel } from './fake-cloud.mjs';
+import { deferred, FakeScheduler } from './fake-scheduler.mjs';
 
 // Synthetic contract for fields observed on the owner's panel: readyState 0 with a door open and 2
 // with every zone closed,

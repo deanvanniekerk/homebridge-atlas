@@ -1,6 +1,6 @@
-import { CloudError, isRecord } from './cloud-error.js';
-import { vendorTime, type ArmTarget } from './cloud-protocol.js';
-import { fieldNames } from './shape.js';
+import { CloudError, isRecord } from '../cloud/cloud-error.js';
+import { type ArmTarget, vendorTime } from '../cloud/cloud-protocol.js';
+import { fieldNames } from '../cloud/shape.js';
 
 export type Reading<T> =
   | { readonly available: true; readonly value: T }

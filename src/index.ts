@@ -1,6 +1,6 @@
 import type { API } from 'homebridge';
 
-import { AtlasPlatform } from './platform.js';
+import { AtlasPlatform } from './homebridge/platform.js';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
 
 export default function register(api: API): void {

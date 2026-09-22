@@ -1,6 +1,0 @@
-node_modules/
-dist/
-coverage/
-.local/
-.secrets/
-package-lock.json

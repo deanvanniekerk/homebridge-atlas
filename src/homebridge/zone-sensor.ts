@@ -1,6 +1,6 @@
 import type { API, Characteristic, PlatformAccessory } from 'homebridge';
-import type { SensorKind } from './configuration.js';
-import type { SiteCoordinator } from './coordinator.js';
+import type { SensorKind } from '../configuration.js';
+import type { SiteCoordinator } from '../site/coordinator.js';
 
 /** Read-only HAP presentation of one zone as a motion or contact sensor. */
 export class ZoneSensor {

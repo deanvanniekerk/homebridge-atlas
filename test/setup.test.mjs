@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { discoverZones } from '../dist/setup.js';
+import { discoverZones } from '../dist/site/setup.js';
 import {
   credentials,
   panel,

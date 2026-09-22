@@ -1,4 +1,4 @@
-import { isRecord } from './cloud-error.js';
+import { isRecord } from './cloud/cloud-error.js';
 
 export type SensorKind = 'motion' | 'contact';
 export type ZoneOverride = SensorKind | 'hidden';

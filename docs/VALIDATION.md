@@ -2,7 +2,7 @@
 
 ## Automated coverage
 
-`npm run check` runs formatting, lint, strict typechecking and behavioral tests on local fake services. CI covers Node 22.23.2, latest 22 and 24 on Linux x64, plus a pinned Linux ARMv7 Homebridge image under emulation.
+`npm run check` runs Biome formatting and lint checks, strict TypeScript checks, and behavioral tests on local fake services. CI runs the full check on Node 22.23.2, latest 22 and 24 on Linux x64. The pinned Linux ARMv7 Homebridge image runs typechecking and tests under emulation; Biome does not publish an ARMv7 binary.
 
 | Boundary                                                      | Tests                                                      |
 | ------------------------------------------------------------- | ---------------------------------------------------------- |
