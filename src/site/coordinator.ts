@@ -1,7 +1,7 @@
-import { CloudError, type CloudErrorCategory } from './cloud-error.js';
-import type { RuntimeUpdate } from './cloud-events.js';
+import { CloudError, type CloudErrorCategory } from '../cloud/cloud-error.js';
+import type { RuntimeUpdate } from '../cloud/cloud-events.js';
 import type { ArmState, PanelState, PartitionState, ZoneState } from './panel-model.js';
-import { bounded, systemScheduler, type Scheduler } from './scheduler.js';
+import { bounded, type Scheduler, systemScheduler } from './scheduler.js';
 
 export interface PanelGateway {
   /** Resource-owning gateways close their client, including shared authentication. */
@@ -36,7 +36,12 @@ export class CommandError extends Error {
 }
 
 export type SiteStatus =
-  'healthy' | 'stale' | 'auth-required' | 'permission-denied' | 'protocol-error' | 'unavailable';
+  | 'healthy'
+  | 'stale'
+  | 'auth-required'
+  | 'permission-denied'
+  | 'protocol-error'
+  | 'unavailable';
 
 export interface SiteSnapshot {
   readonly status: SiteStatus;

@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
-import { CloudError } from '../dist/cloud-error.js';
-import { SiteCoordinator } from '../dist/coordinator.js';
-import { decodePanelState } from '../dist/panel-model.js';
-import { deferred, FakeScheduler } from './fake-scheduler.mjs';
-import { panel } from './fake-cloud.mjs';
+import { test } from 'vitest';
+import { CloudError } from '../cloud/cloud-error.js';
+import { panel } from '../cloud/fake-cloud.test-support.js';
+import { SiteCoordinator } from './coordinator.js';
+import { deferred, FakeScheduler } from './fake-scheduler.test-support.js';
+import { decodePanelState } from './panel-model.js';
 
 // Synthetic push contract: timing assertions describe scheduling, not measured vendor latency.
 function harness(options = {}) {

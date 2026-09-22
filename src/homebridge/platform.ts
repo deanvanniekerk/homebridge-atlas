@@ -5,20 +5,20 @@ import type {
   PlatformAccessory,
   PlatformConfig,
 } from 'homebridge';
-import { RiscoClient } from './cloud-client.js';
-import { isRecord } from './cloud-error.js';
+import { RiscoClient } from '../cloud/cloud-client.js';
+import { isRecord } from '../cloud/cloud-error.js';
 import {
+  type AtlasConfig,
   ConfigurationError,
   parseConfig,
-  sensorKindFor,
-  type AtlasConfig,
   type SensorKind,
-} from './configuration.js';
-import { SiteCoordinator, type SiteSnapshot } from './coordinator.js';
-import { Diagnostics } from './diagnostics.js';
-import { AtlasGateway } from './gateway.js';
+  sensorKindFor,
+} from '../configuration.js';
+import { PLATFORM_NAME, PLUGIN_NAME, pluginVersion } from '../settings.js';
+import { SiteCoordinator, type SiteSnapshot } from '../site/coordinator.js';
+import { Diagnostics } from '../site/diagnostics.js';
+import { AtlasGateway } from '../site/gateway.js';
 import { SecuritySystem } from './security-system.js';
-import { PLATFORM_NAME, PLUGIN_NAME, pluginVersion } from './settings.js';
 import { ZoneSensor } from './zone-sensor.js';
 
 type Accessory = PlatformAccessory<Record<string, unknown>>;

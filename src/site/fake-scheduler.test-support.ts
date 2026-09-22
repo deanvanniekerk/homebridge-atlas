@@ -1,14 +1,18 @@
-export class FakeScheduler {
+import type { Scheduler } from './scheduler.js';
+
+export class FakeScheduler implements Scheduler {
   time = 1_000_000;
-  tasks = new Map();
+  tasks = new Map<number, { at: number; callback: () => void }>();
   sequence = 0;
   now = () => this.time;
-  after = (ms, callback) => {
+  after = (ms: number, callback: () => void) => {
     const id = ++this.sequence;
     this.tasks.set(id, { at: this.time + ms, callback });
-    return () => this.tasks.delete(id);
+    return () => {
+      this.tasks.delete(id);
+    };
   };
-  async advance(ms) {
+  async advance(ms: number): Promise<void> {
     const end = this.time + ms;
     for (;;) {
       await this.flush();
@@ -23,14 +27,15 @@ export class FakeScheduler {
     this.time = end;
     await this.flush();
   }
-  async flush() {
+  async flush(): Promise<void> {
     for (let i = 0; i < 30; i += 1) await Promise.resolve();
   }
 }
 
-export function deferred() {
-  let resolve, reject;
-  const promise = new Promise((yes, no) => {
+export function deferred<T = void>() {
+  let resolve: (value: T) => void = () => {};
+  let reject: (reason?: unknown) => void = () => {};
+  const promise = new Promise<T>((yes, no) => {
     resolve = yes;
     reject = no;
   });

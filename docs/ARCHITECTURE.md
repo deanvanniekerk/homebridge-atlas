@@ -1,18 +1,18 @@
 # Architecture
 
-The plugin's only runtime dependency is `@homebridge/plugin-ui-utils` for the settings page, as in homebridge-centsys. Homebridge supplies HAP; TypeScript and test tools are development dependencies. The layering, deadlines and error model follow [homebridge-aqua-temp](https://github.com/deanvanniekerk/homebridge-aqua-temp); command safety follows [homebridge-centsys](https://github.com/deanvanniekerk/homebridge-centsys).
+The plugin uses `@homebridge/plugin-ui-utils` for the settings page and Zod to validate configuration and vendor response structures. Homebridge supplies HAP; TypeScript and test tools are development dependencies. The layering, deadlines and error model follow [homebridge-aqua-temp](https://github.com/deanvanniekerk/homebridge-aqua-temp); command safety follows [homebridge-centsys](https://github.com/deanvanniekerk/homebridge-centsys).
 
-| Module                                                  | Responsibility                                                               |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `cloud-client.ts`, `cloud-http.ts`, `cloud-protocol.ts` | Validated envelopes, three-stage authentication, deadlines and bounded retry |
-| `cloud-events.ts`                                       | Server-sent event stream transport, parsing and `runtimeUpdate` decoding     |
-| `cloud-time.ts`, `scheduler.ts`, `cloud-error.ts`       | Budgets, cancellable timers and fixed, log-safe failure categories           |
-| `panel-model.ts`                                        | Strict partition/zone decoding into available/unavailable readings           |
-| `gateway.ts`                                            | Client lifecycle and translation to panel state                              |
-| `coordinator.ts`                                        | Site polling, freshness, command exclusivity and confirmation                |
-| `platform.ts`                                           | Homebridge lifecycle, zone selection and stable accessory identities         |
-| `security-system.ts`, `zone-sensor.ts`                  | HAP Security System per partition; motion/contact sensor per zone            |
-| `configuration.ts`, `diagnose.ts`                       | Runtime config validation; owner-run read-only API check                     |
+The source layout and conventions are documented in [Project structure](PROJECT_STRUCTURE.md).
+
+- `cloud/cloud-client.ts`, `cloud/cloud-http.ts` and `cloud/cloud-protocol.ts`: validated envelopes, three-stage authentication, deadlines and bounded retry.
+- `cloud/cloud-events.ts`: server-sent event transport, parsing and `runtimeUpdate` decoding.
+- `cloud/cloud-time.ts`, `site/scheduler.ts` and `cloud/cloud-error.ts`: budgets, cancellable timers and fixed, log-safe failure categories.
+- `site/panel-model.ts`: strict partition and zone decoding into available or unavailable readings.
+- `site/gateway.ts`: client lifecycle and translation to panel state.
+- `site/coordinator.ts`: site polling, freshness, command exclusivity and confirmation.
+- `homebridge/platform.ts`: Homebridge lifecycle, zone selection and stable accessory identities.
+- `homebridge/security-system.ts` and `homebridge/zone-sensor.ts`: HAP Security System per partition and motion or contact sensor per zone.
+- `configuration.ts` and `diagnose.ts`: runtime config validation and owner-run read-only API check.
 
 ## Transport
 

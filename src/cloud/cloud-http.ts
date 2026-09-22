@@ -1,6 +1,7 @@
 import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
-import { CloudError, isRecord, type CloudErrorCategory } from './cloud-error.js';
+import { z } from 'zod';
+import { CloudError, type CloudErrorCategory } from './cloud-error.js';
 
 export interface HttpCall {
   origin: string;
@@ -13,6 +14,9 @@ export interface HttpCall {
 
 /** Vendor result for a control-panel task that did not answer in time. */
 const PANEL_TIMEOUT_RESULT = 72;
+const integer = z.number().refine(Number.isInteger);
+const envelopeSchema = z.looseObject({ status: integer });
+const resultSchema = integer.nullable().optional();
 
 /** JSON POST only, no redirects, no raw errors crossing this boundary. */
 export async function post(call: HttpCall): Promise<unknown> {
@@ -89,18 +93,20 @@ export async function post(call: HttpCall): Promise<unknown> {
  * failure inside a 200 reply. Vendor text is never surfaced.
  */
 function envelope(value: unknown, call: HttpCall): unknown {
-  if (!isRecord(value) || !Number.isInteger(value.status)) throw new CloudError('invalid-response');
-  if (value.status !== 200)
-    throw new CloudError(categoryFor(value.status as number, call.token !== undefined));
-  if (!('response' in value)) throw new CloudError('invalid-response');
-  if (value.result !== undefined && value.result !== null) {
-    if (!Number.isInteger(value.result)) throw new CloudError('invalid-response');
-    if (value.result === PANEL_TIMEOUT_RESULT)
+  const parsed = envelopeSchema.safeParse(value);
+  if (!parsed.success) throw new CloudError('invalid-response');
+  const reply = parsed.data;
+  if (reply.status !== 200)
+    throw new CloudError(categoryFor(reply.status, call.token !== undefined));
+  if (!('response' in reply)) throw new CloudError('invalid-response');
+  const result = resultSchema.safeParse(reply.result);
+  if (!result.success) throw new CloudError('invalid-response');
+  if (result.data !== undefined && result.data !== null) {
+    if (result.data === PANEL_TIMEOUT_RESULT)
       throw new CloudError('panel-timeout', 0, false, PANEL_TIMEOUT_RESULT);
-    if (value.result !== 0)
-      throw new CloudError('vendor-rejected', 0, false, value.result as number);
+    if (result.data !== 0) throw new CloudError('vendor-rejected', 0, false, result.data);
   }
-  return value.response;
+  return reply.response;
 }
 
 export function categoryFor(status: number, authenticated: boolean): CloudErrorCategory {

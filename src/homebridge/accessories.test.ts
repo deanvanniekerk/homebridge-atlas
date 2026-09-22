@@ -1,16 +1,16 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
-import { HomebridgeAPI } from '../node_modules/homebridge/dist/api.js';
-import { SiteCoordinator } from '../dist/coordinator.js';
-import { decodePanelState } from '../dist/panel-model.js';
-import { SecuritySystem } from '../dist/security-system.js';
-import { ZoneSensor } from '../dist/zone-sensor.js';
-import { FakeScheduler } from './fake-scheduler.mjs';
-import { panel } from './fake-cloud.mjs';
+import { onTestFinished, test } from 'vitest';
+import { HomebridgeAPI } from '../../node_modules/homebridge/dist/api.js';
+import { panel } from '../cloud/fake-cloud.test-support.js';
+import { SiteCoordinator } from '../site/coordinator.js';
+import { FakeScheduler } from '../site/fake-scheduler.test-support.js';
+import { decodePanelState } from '../site/panel-model.js';
+import { SecuritySystem } from './security-system.js';
+import { ZoneSensor } from './zone-sensor.js';
 
 const communicationFailure = (error) => error === -70402;
 
-async function setup(t, options = {}) {
+async function setup(options = {}) {
   const api = new HomebridgeAPI();
   const scheduler = new FakeScheduler();
   const raw = {
@@ -57,7 +57,7 @@ async function setup(t, options = {}) {
     const accessory = make(`Synthetic zone ${id}`);
     return { accessory, sensor: new ZoneSensor(api.hap, accessory, coordinator, id, kind) };
   });
-  t.after(() => {
+  onTestFinished(() => {
     security.close();
     for (const zone of zones) zone.sensor.close();
     coordinator.close();
@@ -90,8 +90,8 @@ async function setup(t, options = {}) {
   };
 }
 
-test('security system fails before fresh state, then maps arm and alarm states', async (t) => {
-  const h = await setup(t);
+test('security system fails before fresh state, then maps arm and alarm states', async () => {
+  const h = await setup();
   await assert.rejects(
     h.securityChar('SecuritySystemCurrentState').handleGetRequest(),
     communicationFailure,
@@ -123,8 +123,8 @@ test('security system fails before fresh state, then maps arm and alarm states',
   assert.deepEqual(h.securityChar('SecuritySystemTargetState').props.validValues, [0, 1, 3]);
 });
 
-test('target state writes send commands only when control is enabled', async (t) => {
-  const h = await setup(t, { partialArmMode: 'night' });
+test('target state writes send commands only when control is enabled', async () => {
+  const h = await setup({ partialArmMode: 'night' });
   await h.start();
   assert.deepEqual(h.securityChar('SecuritySystemTargetState').props.validValues, [1, 2, 3]);
   await h.securityChar('SecuritySystemTargetState').handleSetRequest(2);
@@ -132,7 +132,7 @@ test('target state writes send commands only when control is enabled', async (t)
   assert.equal(await h.securityChar('SecuritySystemTargetState').handleGetRequest(), 2);
   assert.equal(await h.securityChar('SecuritySystemCurrentState').handleGetRequest(), 3);
 
-  const readOnly = await setup(t, { control: false });
+  const readOnly = await setup({ control: false });
   await readOnly.start();
   const target = readOnly.securityChar('SecuritySystemTargetState');
   assert.ok(!target.props.perms.includes('pw'));
@@ -140,8 +140,8 @@ test('target state writes send commands only when control is enabled', async (t)
   assert.equal(readOnly.arms.length, 0);
 });
 
-test('zones map to motion and contact sensors; bypassed zones are inactive', async (t) => {
-  const h = await setup(t);
+test('zones map to motion and contact sensors; bypassed zones are inactive', async () => {
+  const h = await setup();
   await h.start();
   const [motion, contact, bypassed] = h.zones.map((zone) => zone.accessory);
   const get = (accessory, service, name) =>
@@ -164,7 +164,7 @@ test('zones map to motion and contact sensors; bypassed zones are inactive', asy
   assert.equal(await get(contact, 'ContactSensor', 'ContactSensorState'), 0);
   await assert.rejects(get(bypassed, 'ContactSensor', 'ContactSensorState'), communicationFailure);
   const retyped = new ZoneSensor(h.api.hap, contact, h.coordinator, 2, 'motion');
-  t.after(() => retyped.close());
+  onTestFinished(() => retyped.close());
   assert.equal(contact.getService(h.api.hap.Service.ContactSensor), undefined);
   assert.ok(contact.getService(h.api.hap.Service.MotionSensor));
 });

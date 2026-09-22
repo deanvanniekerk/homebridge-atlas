@@ -2,15 +2,15 @@
 
 ## Automated coverage
 
-`npm run check` runs formatting, lint, strict typechecking and behavioral tests on local fake services. CI covers Node 22.23.2, latest 22 and 24 on Linux x64, plus a pinned Linux ARMv7 Homebridge image under emulation.
+`npm run check` runs Biome formatting and lint checks, strict runtime TypeScript checks, a production build, and colocated Vitest tests on local fake services. CI runs the full check on Node 22.23.2, latest 22 and 24 on Linux x64. The pinned Linux ARMv7 Homebridge image runs typechecking, the build, and tests under emulation; Biome does not publish an ARMv7 binary.
 
-| Boundary                                                      | Tests                                                      |
-| ------------------------------------------------------------- | ---------------------------------------------------------- |
-| Envelopes, three-stage login, expiry, PIN pause, retry bounds | `test/cloud.test.mjs`                                      |
-| Partition and zone decoding                                   | `test/panel-model.test.mjs`                                |
-| Polling, freshness, command exclusivity and confirmation      | `test/coordinator.test.mjs`                                |
-| HAP Security System, zone sensors and cached identities       | `test/accessories.test.mjs`, `test/platform.test.mjs`      |
-| Configuration and sanitized diagnostics                       | `test/configuration.test.mjs`, `test/diagnostics.test.mjs` |
+| Boundary                                                      | Tests                                                                                  |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Envelopes, three-stage login, expiry, PIN pause, retry bounds | `src/cloud/cloud-client.test.ts`                                                      |
+| Partition and zone decoding                                   | `src/site/panel-model.test.ts`                                                        |
+| Polling, push, freshness, command exclusivity and confirmation | `src/site/coordinator*.test.ts`                                                       |
+| HAP Security System, zone sensors and cached identities       | `src/homebridge/accessories.test.ts`, `src/homebridge/platform.test.ts`              |
+| Configuration and sanitized diagnostics                       | `src/configuration.test.ts`, `src/site/diagnostics.test.ts`                           |
 
 ## Actual-account evidence
 

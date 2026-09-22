@@ -1,11 +1,18 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
-import { RiscoClient } from '../dist/cloud-client.js';
-import { Diagnostics } from '../dist/diagnostics.js';
-import { AtlasGateway } from '../dist/gateway.js';
-import { decodePanelState } from '../dist/panel-model.js';
-import { shapeOf } from '../dist/shape.js';
-import { credentials, panel, reply, riscoRoutes, serverFor, success } from './fake-cloud.mjs';
+import { onTestFinished, test } from 'vitest';
+import { RiscoClient } from '../cloud/cloud-client.js';
+import {
+  credentials,
+  panel,
+  reply,
+  riscoRoutes,
+  serverFor,
+  success,
+} from '../cloud/fake-cloud.test-support.js';
+import { shapeOf } from '../cloud/shape.js';
+import { Diagnostics } from './diagnostics.js';
+import { AtlasGateway } from './gateway.js';
+import { decodePanelState } from './panel-model.js';
 
 const secretName = 'Synthetic Private Bedroom PIR';
 
@@ -119,29 +126,27 @@ test('value-free shapes describe unrecognized replies', () => {
   );
 });
 
-test('protocol failures keep the rejected reply shape for debug reports', async (t) => {
+test('protocol failures keep the rejected reply shape for debug reports', async () => {
   const server = await serverFor(
-    t,
     riscoRoutes({
       login: (_call, res) => reply(res, success({ token: 'synthetic-token' })),
     }),
   );
   const client = new RiscoClient(credentials, { origin: server.origin });
   const gateway = new AtlasGateway(client);
-  t.after(() => gateway.close());
+  onTestFinished(() => gateway.close());
   await assert.rejects(gateway.read(new AbortController().signal), {
     category: 'invalid-response',
   });
   assert.deepEqual(gateway.rejectedShape(), { stage: 'login', shape: { token: 'string' } });
 
   const stateServer = await serverFor(
-    t,
     riscoRoutes({ state: (_call, res) => reply(res, success({ status: { zones: [] } })) }),
   );
   const stateGateway = new AtlasGateway(
     new RiscoClient(credentials, { origin: stateServer.origin }),
   );
-  t.after(() => stateGateway.close());
+  onTestFinished(() => stateGateway.close());
   await assert.rejects(stateGateway.read(new AbortController().signal), {
     category: 'invalid-response',
   });

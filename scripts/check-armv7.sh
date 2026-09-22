@@ -22,5 +22,6 @@ docker run --rm --platform linux/arm/v7 --entrypoint /bin/sh \
     cd /tmp/atlas-check
     node -e '\''if (process.arch !== "arm" || Number(process.config.variables.arm_version) !== 7) process.exit(1)'\''
     npm ci --no-audit --no-fund
-    npm run check
+    # Biome does not publish a Linux ARMv7 binary; x64 CI runs its checks.
+    npm run check:runtime
   '

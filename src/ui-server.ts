@@ -1,6 +1,6 @@
 import { HomebridgePluginUiServer, RequestError } from '@homebridge/plugin-ui-utils';
-import { CloudError } from './cloud-error.js';
-import { discoverZones } from './setup.js';
+import { CloudError } from './cloud/cloud-error.js';
+import { discoverZones } from './site/setup.js';
 
 class UiServer extends HomebridgePluginUiServer {
   constructor() {

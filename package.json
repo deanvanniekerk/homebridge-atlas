@@ -1,6 +1,6 @@
 {
   "name": "homebridge-atlas",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Homebridge plugin for Atlas Home Security and RISCO Cloud alarm systems",
   "type": "module",
   "main": "dist/index.js",
@@ -32,14 +32,18 @@
     "url": "git+https://github.com/deanvanniekerk/homebridge-atlas.git"
   },
   "files": [
-    "dist/*.js",
+    "dist/**/*.js",
     "!dist/diagnose.js",
-    "homebridge-ui/",
+    "homebridge-ui/server.js",
+    "homebridge-ui/public/app.js",
+    "homebridge-ui/public/index.html",
+    "homebridge-ui/public/style.css",
     "config.schema.json",
     "README.md",
     "CHANGELOG.md",
     "LICENSE",
     "docs/ARCHITECTURE.md",
+    "docs/PROJECT_STRUCTURE.md",
     "docs/CONFIGURATION.md",
     "docs/INSTALLATION.md",
     "docs/VALIDATION.md",
@@ -49,26 +53,26 @@
     "RELEASE_STEPS.md"
   ],
   "scripts": {
-    "build": "node scripts/build.mjs",
+    "build": "rimraf dist && tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint . --max-warnings 0",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "test": "npm run build && node --test --test-concurrency=1 test/*.test.mjs",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm test",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "test": "vitest run",
+    "check:runtime": "npm run typecheck && npm run build && npm test",
+    "check": "biome check . && npm run check:runtime",
     "diagnose": "npm run build && node dist/diagnose.js",
     "prepack": "npm run build",
     "prepublishOnly": "node scripts/check-release.mjs"
   },
   "devDependencies": {
-    "@eslint/js": "10.0.1",
+    "@biomejs/biome": "2.5.14",
     "@types/node": "22.20.1",
-    "eslint": "10.10.0",
-    "globals": "17.12.0",
     "homebridge": "2.4.0",
-    "prettier": "3.9.6",
+    "rimraf": "6.1.3",
     "typescript": "6.0.3",
-    "typescript-eslint": "8.70.0"
+    "vite": "7.3.6",
+    "vitest": "5.0.1"
   },
   "homepage": "https://github.com/deanvanniekerk/homebridge-atlas#readme",
   "bugs": {
@@ -80,6 +84,7 @@
     "registry": "https://registry.npmjs.org/"
   },
   "dependencies": {
-    "@homebridge/plugin-ui-utils": "2.2.6"
+    "@homebridge/plugin-ui-utils": "2.2.6",
+    "zod": "4.6.5"
   }
 }

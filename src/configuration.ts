@@ -1,4 +1,5 @@
-import { isRecord } from './cloud-error.js';
+import { z } from 'zod';
+import { isRecord } from './cloud/cloud-error.js';
 
 export type SensorKind = 'motion' | 'contact';
 export type ZoneOverride = SensorKind | 'hidden';
@@ -56,87 +57,63 @@ export class ConfigurationError extends Error {
   }
 }
 
-function cleanText(value: unknown, maximum: number): value is string {
-  return (
-    typeof value === 'string' &&
-    Array.from(value).length <= maximum &&
-    /^\S(?:[^\r\n]*\S)?$/.test(value)
-  );
-}
-
-function optionalBoolean(value: unknown, fallback: boolean, field: Field): boolean {
-  const result: unknown = value === undefined ? fallback : value;
-  if (typeof result !== 'boolean') throw new ConfigurationError(field);
-  return result;
-}
-
-function zoneOverrides(value: unknown): ReadonlyMap<number, ZoneOverride> {
-  const items: unknown = value === undefined ? [] : value;
-  if (!Array.isArray(items) || items.length > 256) throw new ConfigurationError('zones');
-  const zones = new Map<number, ZoneOverride>();
-  for (const item of items) {
-    if (
-      !isRecord(item) ||
-      !Number.isSafeInteger(item.id) ||
-      (item.id as number) < 0 ||
-      zones.has(item.id as number) ||
-      (item.type !== 'motion' && item.type !== 'contact' && item.type !== 'hidden') ||
-      // The settings page records the zone name for readability; it is not used for identity.
-      (item.name !== undefined &&
-        (typeof item.name !== 'string' || Array.from(item.name).length > 64))
-    )
-      throw new ConfigurationError('zones');
-    zones.set(item.id as number, item.type);
-  }
-  return zones;
-}
+const boundedText = (maximum: number) =>
+  z
+    .string()
+    .refine((value) => Array.from(value).length <= maximum && /^\S(?:[^\r\n]*\S)?$/.test(value));
+const identifier = z.number().int().nonnegative().refine(Number.isSafeInteger);
+const zoneSchema = z.object({
+  id: identifier,
+  type: z.enum(['motion', 'contact', 'hidden']),
+  // Stored only for readability in the settings page; never used as identity.
+  name: z
+    .string()
+    .refine((value) => Array.from(value).length <= 64)
+    .optional(),
+});
+const configSchema = z.object({
+  name: boundedText(64).default('Atlas'),
+  username: boundedText(320),
+  password: z.string().refine((value) => Array.from(value).length <= 4096 && /\S/.test(value)),
+  pin: z.string().regex(/^\d{4,8}$/),
+  siteId: identifier.optional(),
+  pollInterval: z.number().int().min(10).max(300).default(30),
+  updates: z.enum(['push', 'poll']).default('push'),
+  debug: z.boolean().default(false),
+  enableControl: z.boolean().default(false),
+  partialArmMode: z.enum(['stay', 'night']).default('stay'),
+  includeZones: z.boolean().default(true),
+  zones: z
+    .array(zoneSchema)
+    .max(256)
+    .refine((items) => new Set(items.map((item) => item.id)).size === items.length)
+    .default([]),
+});
 
 /** Reject before constructing a cloud client; never include rejected values or unknown keys in errors. */
 export function parseConfig(input: unknown): AtlasConfig {
   if (!isRecord(input)) throw new ConfigurationError('configuration');
-  const name: unknown = input.name === undefined ? 'Atlas' : input.name;
-  if (!cleanText(name, 64)) throw new ConfigurationError('name');
-  if (!cleanText(input.username, 320)) throw new ConfigurationError('username');
-  if (
-    typeof input.password !== 'string' ||
-    Array.from(input.password).length > 4096 ||
-    !/\S/.test(input.password)
-  )
-    throw new ConfigurationError('password');
-  if (typeof input.pin !== 'string' || !/^\d{4,8}$/.test(input.pin))
-    throw new ConfigurationError('pin');
-  if (
-    input.siteId !== undefined &&
-    (!Number.isSafeInteger(input.siteId) || (input.siteId as number) < 0)
-  )
-    throw new ConfigurationError('siteId');
-  const pollInterval: unknown = input.pollInterval === undefined ? 30 : input.pollInterval;
-  if (
-    typeof pollInterval !== 'number' ||
-    !Number.isInteger(pollInterval) ||
-    pollInterval < 10 ||
-    pollInterval > 300
-  )
-    throw new ConfigurationError('pollInterval');
-  const updates: unknown = input.updates === undefined ? 'push' : input.updates;
-  if (updates !== 'push' && updates !== 'poll') throw new ConfigurationError('updates');
-  const partialArmMode: unknown =
-    input.partialArmMode === undefined ? 'stay' : input.partialArmMode;
-  if (partialArmMode !== 'stay' && partialArmMode !== 'night')
-    throw new ConfigurationError('partialArmMode');
+  const result = configSchema.safeParse(input);
+  if (!result.success) {
+    const key = result.error.issues[0]?.path[0];
+    throw new ConfigurationError(
+      typeof key === 'string' && Object.hasOwn(messages, key) ? (key as Field) : 'configuration',
+    );
+  }
+  const config = result.data;
   return Object.freeze({
-    name,
-    username: input.username,
-    password: input.password,
-    pin: input.pin,
-    siteId: input.siteId as number | undefined,
-    pollInterval,
-    updates,
-    debug: optionalBoolean(input.debug, false, 'debug'),
-    enableControl: optionalBoolean(input.enableControl, false, 'enableControl'),
-    partialArmMode,
-    includeZones: optionalBoolean(input.includeZones, true, 'includeZones'),
-    zones: zoneOverrides(input.zones),
+    name: config.name,
+    username: config.username,
+    password: config.password,
+    pin: config.pin,
+    siteId: config.siteId,
+    pollInterval: config.pollInterval,
+    updates: config.updates,
+    debug: config.debug,
+    enableControl: config.enableControl,
+    partialArmMode: config.partialArmMode,
+    includeZones: config.includeZones,
+    zones: new Map<number, ZoneOverride>(config.zones.map(({ id, type }) => [id, type])),
   });
 }
 

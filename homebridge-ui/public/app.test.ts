@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
+import { test } from 'vitest';
 
 // Execute the shipped settings page against a small DOM and Homebridge UI boundary.
 function fakeElement(tag = 'div') {

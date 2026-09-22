@@ -1,4 +1,4 @@
-import { CloudError } from './cloud-error.js';
+import { CloudError } from '../cloud/cloud-error.js';
 
 export interface Scheduler {
   now(): number;

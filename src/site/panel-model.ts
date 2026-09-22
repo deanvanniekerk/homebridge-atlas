@@ -1,6 +1,7 @@
-import { CloudError, isRecord } from './cloud-error.js';
-import { vendorTime, type ArmTarget } from './cloud-protocol.js';
-import { fieldNames } from './shape.js';
+import { z } from 'zod';
+import { CloudError, isRecord } from '../cloud/cloud-error.js';
+import { type ArmTarget, vendorTime } from '../cloud/cloud-protocol.js';
+import { fieldNames } from '../cloud/shape.js';
 
 export type Reading<T> =
   | { readonly available: true; readonly value: T }
@@ -62,6 +63,14 @@ export interface PanelState {
 }
 
 const maximumRecords = 1000;
+const panelResponseSchema = z.looseObject({
+  state: z.looseObject({
+    status: z.looseObject({
+      partitions: z.array(z.unknown()).max(maximumRecords),
+      zones: z.array(z.unknown()).max(maximumRecords),
+    }),
+  }),
+});
 
 const armStates = new Map<unknown, ArmState>([
   [1, 'disarmed'],
@@ -110,12 +119,6 @@ function seconds(value: unknown): Reading<number> {
   return identifier(value) && value <= 3600
     ? { available: true, value }
     : { available: false, reason: 'invalid' };
-}
-
-function records(value: unknown): unknown[] {
-  if (!Array.isArray(value) || value.length > maximumRecords)
-    throw new CloudError('invalid-response');
-  return value;
 }
 
 /** Keep the first record per identity; malformed or duplicated identities are counted, not guessed. */
@@ -172,10 +175,12 @@ export function decodePanelState(
   value: unknown,
   context: { siteId: number; fromControlPanel: boolean; observedAtMs: number },
 ): PanelState {
-  const status = isRecord(value) && isRecord(value.state) ? value.state.status : undefined;
-  if (!isRecord(status)) throw new CloudError('invalid-response');
-  const partitionRecords = records(status.partitions);
-  const zoneRecords = records(status.zones);
+  const parsed = panelResponseSchema.safeParse(value);
+  if (!parsed.success) throw new CloudError('invalid-response');
+  const state = parsed.data.state;
+  const status = state.status;
+  const partitionRecords = status.partitions;
+  const zoneRecords = status.zones;
   const partitions = unique(partitionRecords, (row) =>
     identifier(row.id)
       ? {
@@ -205,15 +210,13 @@ export function decodePanelState(
     siteId: context.siteId,
     source: context.fromControlPanel ? 'panel' : 'cloud',
     observedAtMs: context.observedAtMs,
-    statusUpdatedAtMs: vendorTime(
-      isRecord(value) && isRecord(value.state) ? value.state.lastStatusUpdate : undefined,
-    ),
-    online: flag(isRecord(value) && isRecord(value.state) ? value.state.isOnline : undefined),
+    statusUpdatedAtMs: vendorTime(state.lastStatusUpdate),
+    online: flag(state.isOnline),
     partitions: Object.freeze(partitions.values),
     zones: Object.freeze(zones.values),
     rejectedRecords: partitions.rejected + zones.rejected,
     evidence: Object.freeze({
-      stateKeys: fieldNames(isRecord(value) ? value.state : undefined),
+      stateKeys: fieldNames(state),
       statusKeys: fieldNames(status),
       partitionFields: fieldUnion(partitionRecords),
       zoneFields: fieldUnion(zoneRecords),
@@ -223,10 +226,8 @@ export function decodePanelState(
       zoneTypes: histogram(zoneRecords, 'zoneType'),
       zoneTroubles: histogram(zoneRecords, 'trouble'),
       partitionReadyStates: histogram(partitionRecords, 'readyState'),
-      online: histogram(isRecord(value) ? [value.state] : [], 'isOnline'),
-      statusTimestamp: timestampShape(
-        isRecord(value) && isRecord(value.state) ? value.state.lastStatusUpdate : undefined,
-      ),
+      online: histogram([state], 'isOnline'),
+      statusTimestamp: timestampShape(state.lastStatusUpdate),
     }),
   });
 }

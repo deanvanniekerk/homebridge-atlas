@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
-import { discoverZones } from '../dist/setup.js';
+import { test } from 'vitest';
 import {
   credentials,
   panel,
@@ -9,10 +8,11 @@ import {
   serverFor,
   siteId,
   success,
-} from './fake-cloud.mjs';
+} from '../cloud/fake-cloud.test-support.js';
+import { discoverZones } from './setup.js';
 
-test('settings discovery returns zones with suggested sensor types and live conditions', async (t) => {
-  const server = await serverFor(t, riscoRoutes());
+test('settings discovery returns zones with suggested sensor types and live conditions', async () => {
+  const server = await serverFor(riscoRoutes());
   const result = await discoverZones(credentials, { origin: server.origin });
   assert.deepEqual(result, {
     kind: 'zones',
@@ -27,13 +27,12 @@ test('settings discovery returns zones with suggested sensor types and live cond
   assert.ok(server.calls.every((call) => call.route !== 'arm'));
 });
 
-test('settings discovery asks for a site when the account has several', async (t) => {
+test('settings discovery asks for a site when the account has several', async () => {
   const sites = [
     { id: 1, name: 'Home' },
     { id: 2, name: 'Office' },
   ];
   const server = await serverFor(
-    t,
     riscoRoutes({
       sites: (_call, res) => reply(res, success(sites)),
       state: (call, res) =>
@@ -53,9 +52,8 @@ test('settings discovery asks for a site when the account has several', async (t
   assert.equal(chosen.siteId, 2);
 });
 
-test('settings discovery surfaces fixed failure categories', async (t) => {
+test('settings discovery surfaces fixed failure categories', async () => {
   const server = await serverFor(
-    t,
     riscoRoutes({ siteLogin: (_call, res) => reply(res, { status: 401, response: null }) }),
   );
   await assert.rejects(discoverZones(credentials, { origin: server.origin }), {

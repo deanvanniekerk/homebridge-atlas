@@ -1,15 +1,33 @@
-import { createServer } from 'node:http';
 import { once } from 'node:events';
+import { createServer, type ServerResponse } from 'node:http';
+import { onTestFinished } from 'vitest';
+
+export interface FakeCall {
+  method: string | undefined;
+  path: string;
+  query: Record<string, string>;
+  route: string;
+  authorization: string | undefined;
+  sessionToken: string | undefined;
+  body: Record<string, unknown>;
+}
+
+type RouteHandler = (
+  call: FakeCall,
+  response: ServerResponse,
+  calls?: FakeCall[],
+) => void | Promise<void>;
+type PanelOptions = { partitions?: unknown[]; zones?: unknown[]; online?: unknown };
 
 // All responses and identities in this file are synthetic, not captured traffic. The envelope
 // and field names follow the RISCO Cloud mobile API as used by public integrations.
-export const success = (response) => ({
+export const success = <T>(response: T) => ({
   status: 200,
   errorText: null,
   result: 0,
   response,
 });
-export const failure = (fields) => ({
+export const failure = (fields: Record<string, unknown>) => ({
   status: 200,
   errorText: 'synthetic',
   response: null,
@@ -23,7 +41,7 @@ export const credentials = {
 export const siteId = 4242;
 export const sessionId = 'synthetic-session';
 
-export function panel({ partitions, zones, online = true } = {}) {
+export function panel({ partitions, zones, online = true }: PanelOptions = {}) {
   return success({
     state: {
       isOnline: online,
@@ -42,7 +60,7 @@ export function panel({ partitions, zones, online = true } = {}) {
 }
 
 /** Default happy-path RISCO cloud; `overrides[name]` replaces a route's handler. */
-export function riscoRoutes(overrides = {}) {
+export function riscoRoutes(overrides: Partial<Record<string, RouteHandler>> = {}): RouteHandler {
   return (call, res, calls) => {
     const route = routeOf(call.path);
     const override = overrides[route];
@@ -69,7 +87,7 @@ export function riscoRoutes(overrides = {}) {
   };
 }
 
-export function routeOf(path) {
+export function routeOf(path: string): string {
   if (path === '/webapi/api/auth/login') return 'login';
   if (path === '/webapi/api/wuws/site/GetAll') return 'sites';
   if (/^\/webapi\/api\/wuws\/site\/\d+\/Login$/.test(path)) return 'siteLogin';
@@ -79,34 +97,41 @@ export function routeOf(path) {
   return 'unknown';
 }
 
-export async function serverFor(t, handle) {
-  const calls = [];
+export async function serverFor(handle: RouteHandler) {
+  const calls: FakeCall[] = [];
   const server = createServer(async (req, res) => {
     let body = '';
     for await (const chunk of req) body += chunk;
-    const url = new URL(req.url, 'http://127.0.0.1');
-    const call = {
+    const url = new URL(req.url ?? '/', 'http://127.0.0.1');
+    const call: FakeCall = {
       method: req.method,
       path: url.pathname,
       query: Object.fromEntries(url.searchParams),
       route: routeOf(url.pathname),
       authorization: req.headers.authorization,
       sessionToken: req.headers.sessiontoken,
-      body: body ? JSON.parse(body) : undefined,
+      body: body ? (JSON.parse(body) as Record<string, unknown>) : {},
     };
     calls.push(call);
     await handle(call, res, calls);
   });
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
-  t.after(() => {
+  onTestFinished(() => {
     server.closeAllConnections();
     server.close();
   });
-  return { origin: `http://127.0.0.1:${server.address().port}`, calls };
+  const address = server.address();
+  if (!address || typeof address === 'string') throw new Error('Fake cloud did not bind a port.');
+  return { origin: `http://127.0.0.1:${address.port}`, calls };
 }
 
-export function reply(res, body, status = 200, headers = {}) {
+export function reply(
+  res: ServerResponse,
+  body: unknown,
+  status = 200,
+  headers: Record<string, string> = {},
+) {
   res.writeHead(status, { 'Content-Type': 'application/json', ...headers });
   res.end(JSON.stringify(body));
 }

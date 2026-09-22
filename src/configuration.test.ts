@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
-import { parseConfig, sensorKindFor } from '../dist/configuration.js';
+import { test } from 'vitest';
+import { parseConfig, sensorKindFor } from './configuration.js';
 
 const base = { username: 'synthetic@example.invalid', password: 'synthetic', pin: '1234' };
 
