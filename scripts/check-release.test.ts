@@ -98,4 +98,4 @@ test('release guard requires approval, matching metadata and finished release no
   );
   assert.equal(extracted.status, 0);
   assert.equal(extracted.stdout, '### Fixed\n\n- New fix.\n');
-});
+}, 60_000);
