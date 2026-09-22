@@ -2,6 +2,15 @@
 
 Release notes for `homebridge-atlas` live here. The release workflow publishes the section matching `package.json` to GitHub, so the npm package, tag and GitHub release all use the same version and notes.
 
+## [1.0.3] - 2026-09-22
+
+### Changed
+
+- Organize cloud, site and Homebridge modules so their responsibilities and imports are easier to follow.
+- Replace ESLint and Prettier with Biome, move tests beside their TypeScript source files and run them with Vitest.
+- Validate configuration and cloud data with Zod while preserving the existing plugin behavior and safe error categories.
+- Use `rimraf` and TypeScript for the production build, and add a project structure guide and implementation specs for the Aqua Temp and CENTSYS plugins.
+
 ## [1.0.2] - 2026-09-16
 
 ### Changed
