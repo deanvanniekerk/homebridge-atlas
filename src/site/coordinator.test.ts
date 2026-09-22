@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
-import { CloudError } from '../dist/cloud/cloud-error.js';
-import { SiteCoordinator } from '../dist/site/coordinator.js';
-import { decodePanelState } from '../dist/site/panel-model.js';
-import { panel } from './fake-cloud.mjs';
-import { deferred, FakeScheduler } from './fake-scheduler.mjs';
+import { test } from 'vitest';
+import { CloudError } from '../cloud/cloud-error.js';
+import { panel } from '../cloud/fake-cloud.test-support.js';
+import { SiteCoordinator } from './coordinator.js';
+import { deferred, FakeScheduler } from './fake-scheduler.test-support.js';
+import { decodePanelState } from './panel-model.js';
 
 // Synthetic domain contract: no assertion here establishes physical panel behavior.
 function sample(scheduler, armedState = 1, fromControlPanel = true) {

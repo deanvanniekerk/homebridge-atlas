@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
-import { decodePanelState } from '../dist/site/panel-model.js';
-import { panel } from './fake-cloud.mjs';
+import { test } from 'vitest';
+import { panel } from '../cloud/fake-cloud.test-support.js';
+import { decodePanelState } from './panel-model.js';
 
 const context = { siteId: 7, fromControlPanel: true, observedAtMs: 1000 };
 const decode = (value, overrides = {}) => decodePanelState(value, { ...context, ...overrides });

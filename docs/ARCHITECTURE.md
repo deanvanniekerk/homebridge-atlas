@@ -1,6 +1,6 @@
 # Architecture
 
-The plugin's only runtime dependency is `@homebridge/plugin-ui-utils` for the settings page, as in homebridge-centsys. Homebridge supplies HAP; TypeScript and test tools are development dependencies. The layering, deadlines and error model follow [homebridge-aqua-temp](https://github.com/deanvanniekerk/homebridge-aqua-temp); command safety follows [homebridge-centsys](https://github.com/deanvanniekerk/homebridge-centsys).
+The plugin uses `@homebridge/plugin-ui-utils` for the settings page and Zod to validate configuration and vendor response structures. Homebridge supplies HAP; TypeScript and test tools are development dependencies. The layering, deadlines and error model follow [homebridge-aqua-temp](https://github.com/deanvanniekerk/homebridge-aqua-temp); command safety follows [homebridge-centsys](https://github.com/deanvanniekerk/homebridge-centsys).
 
 The source layout and conventions are documented in [Project structure](PROJECT_STRUCTURE.md).
 

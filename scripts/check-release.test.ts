@@ -3,18 +3,18 @@ import { spawnSync } from 'node:child_process';
 import { copyFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import test from 'node:test';
+import { onTestFinished, test } from 'vitest';
 
-test('release guard requires approval, matching metadata and finished release notes', async (t) => {
+test('release guard requires approval, matching metadata and finished release notes', async () => {
   const root = await mkdtemp(join(tmpdir(), 'atlas-release-'));
-  t.after(() => rm(root, { recursive: true, force: true }));
+  onTestFinished(() => rm(root, { recursive: true, force: true }));
   await mkdir(join(root, 'scripts'));
   await copyFile(
-    new URL('../scripts/check-release.mjs', import.meta.url),
+    new URL('./check-release.mjs', import.meta.url),
     join(root, 'scripts/check-release.mjs'),
   );
   await copyFile(
-    new URL('../scripts/release-notes.mjs', import.meta.url),
+    new URL('./release-notes.mjs', import.meta.url),
     join(root, 'scripts/release-notes.mjs'),
   );
   async function check(

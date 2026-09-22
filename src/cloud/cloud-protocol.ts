@@ -1,4 +1,5 @@
-import { CloudError, isRecord } from './cloud-error.js';
+import { z } from 'zod';
+import { CloudError } from './cloud-error.js';
 
 export interface Credentials {
   username: string;
@@ -49,50 +50,40 @@ export function originFor(value = vendorOrigin): string {
   }
 }
 
-function text(value: unknown, maximum = 256): value is string {
-  return (
-    typeof value === 'string' && value.trim().length > 0 && Array.from(value).length <= maximum
-  );
-}
-
-function identifier(value: unknown): value is number {
-  return Number.isSafeInteger(value) && (value as number) >= 0;
-}
+const nonBlankText = (maximum: number) =>
+  z.string().refine((value) => value.trim().length > 0 && Array.from(value).length <= maximum);
+const identifier = z.number().int().nonnegative().refine(Number.isSafeInteger);
+const credentialsSchema = z.object({
+  username: nonBlankText(320),
+  password: nonBlankText(4096),
+  pin: z.string().regex(/^\d{4,8}$/),
+  siteId: identifier.optional(),
+});
+const tokenSchema = nonBlankText(8192).regex(/^[\x21-\x7e]+$/);
+const siteSchema = z.object({ id: identifier, name: z.string() });
+const armTargetSchema = z.enum(['disarmed', 'partial', 'armed']);
 
 export function credentialsFor(value: Credentials): Credentials {
-  if (
-    !isRecord(value) ||
-    !text(value.username, 320) ||
-    !text(value.password, 4096) ||
-    typeof value.pin !== 'string' ||
-    !/^\d{4,8}$/.test(value.pin) ||
-    (value.siteId !== undefined && !identifier(value.siteId))
-  )
-    throw new CloudError('invalid-request');
+  const result = credentialsSchema.safeParse(value);
+  if (!result.success) throw new CloudError('invalid-request');
   return {
-    username: value.username,
-    password: value.password,
-    pin: value.pin,
-    ...(value.siteId === undefined ? {} : { siteId: value.siteId }),
+    username: result.data.username,
+    password: result.data.password,
+    pin: result.data.pin,
+    ...(result.data.siteId === undefined ? {} : { siteId: result.data.siteId }),
   };
 }
 
-function token(value: unknown): value is string {
-  return text(value, 8192) && /^[\x21-\x7e]+$/.test(value);
-}
-
 export function accessTokenFrom(value: unknown): string {
-  if (!isRecord(value) || !token(value.accessToken)) throw new CloudError('invalid-response');
-  return value.accessToken;
+  const result = z.object({ accessToken: tokenSchema }).safeParse(value);
+  if (!result.success) throw new CloudError('invalid-response');
+  return result.data.accessToken;
 }
 
 export function sitesFrom(value: unknown): Site[] {
-  if (!Array.isArray(value) || value.length > 100) throw new CloudError('invalid-response');
-  return value.map((site) => {
-    if (!isRecord(site) || !identifier(site.id) || typeof site.name !== 'string')
-      throw new CloudError('invalid-response');
-    return { id: site.id, name: site.name };
-  });
+  const result = z.array(siteSchema).max(100).safeParse(value);
+  if (!result.success) throw new CloudError('invalid-response');
+  return result.data;
 }
 
 /** An explicit site must exist; otherwise the account must expose exactly one. */
@@ -108,8 +99,9 @@ export function selectSite(sites: Site[], siteId: number | undefined): Site {
 }
 
 export function sessionIdFrom(value: unknown): string {
-  if (!isRecord(value) || !token(value.sessionId)) throw new CloudError('invalid-response');
-  return value.sessionId;
+  const result = z.object({ sessionId: tokenSchema }).safeParse(value);
+  if (!result.success) throw new CloudError('invalid-response');
+  return result.data.sessionId;
 }
 
 export function siteLoginBody(pin: string): { languageId: string; pinCode: string } {
@@ -139,7 +131,7 @@ export interface ArmCommand {
 
 /** Validate and snapshot caller input before any authentication or backoff wait. */
 export function armCommand(partitionId: number, target: ArmTarget): ArmCommand {
-  if (!identifier(partitionId) || typeof target !== 'string' || !Object.hasOwn(armedStates, target))
+  if (!identifier.safeParse(partitionId).success || !armTargetSchema.safeParse(target).success)
     throw new CloudError('invalid-request');
   return { partitions: [{ id: partitionId, armedState: armedStates[target] }] };
 }

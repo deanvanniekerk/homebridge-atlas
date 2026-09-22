@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
-import { RiscoClient } from '../dist/cloud/cloud-client.js';
-import { decodeRuntimeUpdate, EventStreamParser } from '../dist/cloud/cloud-events.js';
-import { AtlasGateway } from '../dist/site/gateway.js';
+import { onTestFinished, test } from 'vitest';
+import { AtlasGateway } from '../site/gateway.js';
+import { RiscoClient } from './cloud-client.js';
+import { decodeRuntimeUpdate, EventStreamParser } from './cloud-events.js';
 import {
   credentials,
   panel,
@@ -12,7 +12,7 @@ import {
   sessionId,
   siteId,
   success,
-} from './fake-cloud.mjs';
+} from './fake-cloud.test-support.js';
 
 // Synthetic stream framing and payloads modelled on the public RISCO Cloud contract.
 const update = (status, event = status) =>
@@ -58,9 +58,8 @@ test('decodes runtime updates, treating zone-less vendor timestamps as UTC', () 
   assert.throws(() => decodeRuntimeUpdate('not json'), { category: 'invalid-response' });
 });
 
-test('the client opens the site stream with its session and delivers messages until the end', async (t) => {
+test('the client opens the site stream with its session and delivers messages until the end', async () => {
   const server = await serverFor(
-    t,
     riscoRoutes({
       events: (_call, res) => {
         res.writeHead(200, { 'Content-Type': 'text/event-stream; charset=utf-8' });
@@ -70,7 +69,7 @@ test('the client opens the site stream with its session and delivers messages un
     }),
   );
   const client = new RiscoClient(credentials, { origin: server.origin });
-  t.after(() => client.close());
+  onTestFinished(() => client.close());
   const seen = [];
   await client.events({
     onOpen: () => seen.push('open'),
@@ -85,11 +84,10 @@ test('the client opens the site stream with its session and delivers messages un
   assert.deepEqual(call.query, { sessionToken: sessionId });
 });
 
-test('stream failures map to categories; expiry renews the session for the next attempt', async (t) => {
+test('stream failures map to categories; expiry renews the session for the next attempt', async () => {
   let logins = 0;
   let streams = 0;
   const server = await serverFor(
-    t,
     riscoRoutes({
       login: (_call, res) => {
         logins += 1;
@@ -106,7 +104,7 @@ test('stream failures map to categories; expiry renews the session for the next 
     }),
   );
   const client = new RiscoClient(credentials, { origin: server.origin });
-  t.after(() => client.close());
+  onTestFinished(() => client.close());
   const handlers = { onOpen: () => {}, onMessage: () => {} };
   await assert.rejects(client.events(handlers), { category: 'session-expired' });
   await assert.rejects(client.events(handlers), { category: 'invalid-response' });
@@ -118,7 +116,7 @@ test('stream failures map to categories; expiry renews the session for the next 
   await assert.rejects(cancelled, { category: 'cancelled' });
 });
 
-test('the gateway reads cached state after a push and asks the panel only when the cache is older', async (t) => {
+test('the gateway reads cached state after a push and asks the panel only when the cache is older', async () => {
   const older = '2026-09-15T17:00:00Z';
   const newer = '2026-09-15T17:00:05Z';
   let cached = older;
@@ -128,13 +126,12 @@ test('the gateway reads cached state after a push and asks the panel only when t
     return success(value);
   };
   const server = await serverFor(
-    t,
     riscoRoutes({
       state: (call, res) => reply(res, withStatus(call.body.fromControlPanel ? newer : cached)),
     }),
   );
   const gateway = new AtlasGateway(new RiscoClient(credentials, { origin: server.origin }));
-  t.after(() => gateway.close());
+  onTestFinished(() => gateway.close());
   const signal = new AbortController().signal;
   const stateCalls = () =>
     server.calls.filter((call) => call.route === 'state').map((call) => call.body.fromControlPanel);
@@ -152,9 +149,8 @@ test('the gateway reads cached state after a push and asks the panel only when t
   assert.deepEqual(gateway.readStats().escalations, 1);
 });
 
-test('the gateway decodes runtime updates from the stream and counts event names', async (t) => {
+test('the gateway decodes runtime updates from the stream and counts event names', async () => {
   const server = await serverFor(
-    t,
     riscoRoutes({
       events: (_call, res) => {
         res.writeHead(200, { 'Content-Type': 'text/event-stream' });
@@ -165,7 +161,7 @@ test('the gateway decodes runtime updates from the stream and counts event names
     }),
   );
   const gateway = new AtlasGateway(new RiscoClient(credentials, { origin: server.origin }));
-  t.after(() => gateway.close());
+  onTestFinished(() => gateway.close());
   const updates = [];
   await gateway.watch(new AbortController().signal, {
     onOpen: () => {},

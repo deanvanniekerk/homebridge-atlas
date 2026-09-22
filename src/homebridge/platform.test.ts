@@ -1,11 +1,18 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
-import { AtlasPlatform } from '../dist/homebridge/platform.js';
-import { PLATFORM_NAME, PLUGIN_NAME } from '../dist/settings.js';
-import { HomebridgeAPI } from '../node_modules/homebridge/dist/api.js';
-import { credentials, panel, reply, riscoRoutes, serverFor, siteId } from './fake-cloud.mjs';
-import { redirectCloud } from './redirect-cloud.mjs';
+import { onTestFinished, test } from 'vitest';
+import { HomebridgeAPI } from '../../node_modules/homebridge/dist/api.js';
+import {
+  credentials,
+  panel,
+  reply,
+  riscoRoutes,
+  serverFor,
+  siteId,
+} from '../cloud/fake-cloud.test-support.js';
+import { redirectCloud } from '../cloud/redirect-cloud.test-support.js';
+import { PLATFORM_NAME, PLUGIN_NAME } from '../settings.js';
+import { AtlasPlatform } from './platform.js';
 
 async function waitUntil(condition) {
   const deadline = Date.now() + 3_000;
@@ -15,9 +22,8 @@ async function waitUntil(condition) {
   }
 }
 
-async function host(t, extraConfig = {}, cached = [], zones) {
+async function host(extraConfig = {}, cached = [], zones) {
   const server = await serverFor(
-    t,
     riscoRoutes(zones ? { state: (_call, res) => reply(res, panel({ zones })) } : {}),
   );
   const restoreTransport = redirectCloud(server.origin);
@@ -47,7 +53,7 @@ async function host(t, extraConfig = {}, cached = [], zones) {
     api.emit('shutdown');
     restoreTransport();
   };
-  t.after(stop);
+  onTestFinished(stop);
   return {
     api,
     stop,
@@ -66,8 +72,8 @@ async function host(t, extraConfig = {}, cached = [], zones) {
 const uuid = (api, kind, id) =>
   api.hap.uuid.generate(`${PLUGIN_NAME}:site:${siteId}:${kind}:${id}`);
 
-test('registers one security system and one sensor per zone with stable identities', async (t) => {
-  const cold = await host(t, { zones: [{ id: 4, type: 'hidden' }] });
+test('registers one security system and one sensor per zone with stable identities', async () => {
+  const cold = await host({ zones: [{ id: 4, type: 'hidden' }] });
   await cold.launch();
   await waitUntil(() => cold.registered.length === 3);
   const [partition, hall, door] = cold.registered;
@@ -95,7 +101,6 @@ test('registers one security system and one sensor per zone with stable identiti
   cold.stop();
 
   const warm = await host(
-    t,
     { zones: [{ id: 1, type: 'motion' }] },
     cold.registered.map((item) => cold.api.platformAccessory.serialize(item)),
   );
@@ -117,13 +122,13 @@ test('registers one security system and one sensor per zone with stable identiti
   assert.equal(retyped.getService(warm.api.hap.Service.ContactSensor), undefined);
 });
 
-test('hiding zones removes only their accessories; invalid config sends no traffic', async (t) => {
-  const source = await host(t);
+test('hiding zones removes only their accessories; invalid config sends no traffic', async () => {
+  const source = await host();
   await source.launch();
   await waitUntil(() => source.registered.length === 4);
   source.stop();
   const cached = source.registered.map((item) => source.api.platformAccessory.serialize(item));
-  const hidden = await host(t, { includeZones: false }, cached);
+  const hidden = await host({ includeZones: false }, cached);
   await hidden.launch();
   await waitUntil(() => hidden.removed.length === 3);
   assert.deepEqual(
@@ -132,7 +137,7 @@ test('hiding zones removes only their accessories; invalid config sends no traff
   );
   hidden.stop();
 
-  const invalid = await host(t, { pin: 'abc' });
+  const invalid = await host({ pin: 'abc' });
   invalid.api.emit('didFinishLaunching');
   await delay(50);
   assert.equal(invalid.calls.length, 0);
@@ -140,8 +145,8 @@ test('hiding zones removes only their accessories; invalid config sends no traff
   assert.ok(!invalid.logs.join('\n').includes('abc'));
 });
 
-test('an unconfigured platform removes stale accessories without starting monitoring', async (t) => {
-  const source = await host(t);
+test('an unconfigured platform removes stale accessories without starting monitoring', async () => {
+  const source = await host();
   await source.launch();
   await waitUntil(() => source.registered.length === 4);
   source.stop();
@@ -158,14 +163,14 @@ test('an unconfigured platform removes stale accessories without starting monito
     error: (line) => logs.error.push(line),
     debug: () => {},
   };
-  const server = await serverFor(t, () => assert.fail('network traffic while unconfigured'));
+  const server = await serverFor(() => assert.fail('network traffic while unconfigured'));
   const restore = redirectCloud(server.origin);
-  t.after(restore);
+  onTestFinished(restore);
   const platform = new AtlasPlatform(log, { platform: PLATFORM_NAME, name: 'Atlas' }, api);
   for (const item of cached) platform.configureAccessory(api.platformAccessory.deserialize(item));
   api.emit('didFinishLaunching');
   await delay(50);
-  t.after(() => api.emit('shutdown'));
+  onTestFinished(() => api.emit('shutdown'));
   assert.equal(removed.length, 4);
   assert.deepEqual(logs.info, ['Atlas is not configured. Open the plugin settings to sign in.']);
   assert.deepEqual(logs.warn, []);

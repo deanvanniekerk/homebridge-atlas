@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
-import { SecuritySystem } from '../dist/homebridge/security-system.js';
-import { ZoneSensor } from '../dist/homebridge/zone-sensor.js';
-import { SiteCoordinator } from '../dist/site/coordinator.js';
-import { decodePanelState } from '../dist/site/panel-model.js';
-import { HomebridgeAPI } from '../node_modules/homebridge/dist/api.js';
-import { panel } from './fake-cloud.mjs';
-import { deferred, FakeScheduler } from './fake-scheduler.mjs';
+import { onTestFinished, test } from 'vitest';
+import { HomebridgeAPI } from '../../node_modules/homebridge/dist/api.js';
+import { panel } from '../cloud/fake-cloud.test-support.js';
+import { SecuritySystem } from '../homebridge/security-system.js';
+import { ZoneSensor } from '../homebridge/zone-sensor.js';
+import { SiteCoordinator } from './coordinator.js';
+import { deferred, FakeScheduler } from './fake-scheduler.test-support.js';
+import { decodePanelState } from './panel-model.js';
 
 // Synthetic contract for fields observed on the owner's panel: readyState 0 with a door open and 2
 // with every zone closed,
@@ -110,7 +110,7 @@ test('offline state follows the most recent of the panel read and the pushed IsO
   h.coordinator.close();
 });
 
-test('HomeKit shows zone faults and panel offline, and refuses arming when not ready', async (t) => {
+test('HomeKit shows zone faults and panel offline, and refuses arming when not ready', async () => {
   const h = harness();
   const api = new HomebridgeAPI();
   const make = (name) => new api.platformAccessory(name, api.hap.uuid.generate(name));
@@ -127,7 +127,7 @@ test('HomeKit shows zone faults and panel offline, and refuses arming when not r
     new ZoneSensor(api.hap, door, h.coordinator, 1, 'contact'),
     new ZoneSensor(api.hap, beam, h.coordinator, 2, 'motion'),
   ];
-  t.after(() => {
+  onTestFinished(() => {
     security.close();
     for (const sensor of sensors) sensor.close();
     h.coordinator.close();

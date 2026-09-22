@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
 import { inspect } from 'node:util';
-import { RiscoClient } from '../dist/cloud/cloud-client.js';
+import { onTestFinished, test } from 'vitest';
+import { RiscoClient } from './cloud-client.js';
 import {
   credentials,
   failure,
@@ -11,14 +11,14 @@ import {
   sessionId,
   siteId,
   success,
-} from './fake-cloud.mjs';
+} from './fake-cloud.test-support.js';
 
 const routes = (calls) => calls.map((call) => call.route);
 
-test('concurrent reads share one three-stage login and send the mobile API contract', async (t) => {
-  const server = await serverFor(t, riscoRoutes());
+test('concurrent reads share one three-stage login and send the mobile API contract', async () => {
+  const server = await serverFor(riscoRoutes());
   const client = new RiscoClient(credentials, { origin: server.origin });
-  t.after(() => client.close());
+  onTestFinished(() => client.close());
   const results = await Promise.all(Array.from({ length: 8 }, () => client.state()));
   assert.equal(results[0].siteId, siteId);
   assert.equal(results[0].fromControlPanel, true);
@@ -35,16 +35,15 @@ test('concurrent reads share one three-stage login and send the mobile API contr
   assert.deepEqual(server.calls[3].body, { fromControlPanel: true, sessionToken: sessionId });
 });
 
-test('a panel timeout falls back once to cloud-cached state', async (t) => {
+test('a panel timeout falls back once to cloud-cached state', async () => {
   const server = await serverFor(
-    t,
     riscoRoutes({
       state: (call, res) =>
         call.body.fromControlPanel ? reply(res, failure({ result: 72 })) : riscoRoutes()(call, res),
     }),
   );
   const client = new RiscoClient(credentials, { origin: server.origin });
-  t.after(() => client.close());
+  onTestFinished(() => client.close());
   const result = await client.state();
   assert.equal(result.fromControlPanel, false);
   assert.deepEqual(
@@ -53,9 +52,8 @@ test('a panel timeout falls back once to cloud-cached state', async (t) => {
   );
 });
 
-test('a live panel read that exceeds the request deadline falls back to cloud-cached state', async (t) => {
+test('a live panel read that exceeds the request deadline falls back to cloud-cached state', async () => {
   const server = await serverFor(
-    t,
     riscoRoutes({
       state: (call, res) => {
         // A slow panel never answers the live read within the client's request deadline.
@@ -64,7 +62,7 @@ test('a live panel read that exceeds the request deadline falls back to cloud-ca
     }),
   );
   const client = new RiscoClient(credentials, { origin: server.origin, requestTimeoutMs: 150 });
-  t.after(() => client.close());
+  onTestFinished(() => client.close());
   const result = await client.state();
   assert.equal(result.fromControlPanel, false);
   assert.deepEqual(
@@ -73,10 +71,9 @@ test('a live panel read that exceeds the request deadline falls back to cloud-ca
   );
 });
 
-test('session expiry renews the whole login once and replays the read', async (t) => {
+test('session expiry renews the whole login once and replays the read', async () => {
   let logins = 0;
   const server = await serverFor(
-    t,
     riscoRoutes({
       login: (_call, res) => {
         logins += 1;
@@ -89,7 +86,7 @@ test('session expiry renews the whole login once and replays the read', async (t
     }),
   );
   const client = new RiscoClient(credentials, { origin: server.origin });
-  t.after(() => client.close());
+  onTestFinished(() => client.close());
   await client.state();
   assert.equal(logins, 2);
   assert.deepEqual(routes(server.calls), [
@@ -104,7 +101,7 @@ test('session expiry renews the whole login once and replays the read', async (t
   ]);
 });
 
-test('rejected credentials, PIN and site selection pause traffic until reconfigured', async (t) => {
+test('rejected credentials, PIN and site selection pause traffic until reconfigured', async () => {
   const scenarios = [
     ['invalid-credentials', { login: (_c, res) => reply(res, { status: 401, errorText: 'x' }) }],
     ['invalid-pin', { siteLogin: (_c, res) => reply(res, failure({ result: 5 })) }],
@@ -124,9 +121,9 @@ test('rejected credentials, PIN and site selection pause traffic until reconfigu
     ],
   ];
   for (const [category, overrides] of scenarios) {
-    const server = await serverFor(t, riscoRoutes(overrides));
+    const server = await serverFor(riscoRoutes(overrides));
     const client = new RiscoClient(credentials, { origin: server.origin });
-    t.after(() => client.close());
+    onTestFinished(() => client.close());
     await assert.rejects(client.state(), { category });
     const count = server.calls.length;
     await assert.rejects(client.state(), { category });
@@ -134,9 +131,8 @@ test('rejected credentials, PIN and site selection pause traffic until reconfigu
   }
 });
 
-test('an explicit site id selects among several sites', async (t) => {
+test('an explicit site id selects among several sites', async () => {
   const server = await serverFor(
-    t,
     riscoRoutes({
       sites: (_c, res) =>
         reply(
@@ -149,14 +145,13 @@ test('an explicit site id selects among several sites', async (t) => {
     }),
   );
   const client = new RiscoClient({ ...credentials, siteId }, { origin: server.origin });
-  t.after(() => client.close());
+  onTestFinished(() => client.close());
   assert.equal((await client.state()).siteId, siteId);
 });
 
-test('arm commands encode armedState and are never replayed', async (t) => {
+test('arm commands encode armedState and are never replayed', async () => {
   let armCalls = 0;
   const server = await serverFor(
-    t,
     riscoRoutes({
       arm: (_call, res) => {
         armCalls += 1;
@@ -165,7 +160,7 @@ test('arm commands encode armedState and are never replayed', async (t) => {
     }),
   );
   const client = new RiscoClient(credentials, { origin: server.origin });
-  t.after(() => client.close());
+  onTestFinished(() => client.close());
   await assert.rejects(client.arm(0, 'armed'), {
     category: 'panel-timeout',
     deliveryUncertain: true,
@@ -181,7 +176,7 @@ test('arm commands encode armedState and are never replayed', async (t) => {
   await assert.rejects(client.arm(0, 'toggle'), { category: 'invalid-request' });
 });
 
-test('malformed envelopes and HTTP failures map to fixed categories without vendor text', async (t) => {
+test('malformed envelopes and HTTP failures map to fixed categories without vendor text', async () => {
   const cases = [
     [(res) => reply(res, { secret: credentials.password }), 'invalid-response'],
     [(res) => reply(res, { status: 200, response: null, result: 'x' }), 'invalid-response'],
@@ -189,9 +184,9 @@ test('malformed envelopes and HTTP failures map to fixed categories without vend
     [(res) => reply(res, failure({ result: 9 })), 'vendor-rejected', 9],
   ];
   for (const [respond, category, vendorResult] of cases) {
-    const server = await serverFor(t, riscoRoutes({ state: (_c, res) => respond(res) }));
+    const server = await serverFor(riscoRoutes({ state: (_c, res) => respond(res) }));
     const client = new RiscoClient(credentials, { origin: server.origin });
-    t.after(() => client.close());
+    onTestFinished(() => client.close());
     const error = await client.state().catch((caught) => caught);
     assert.equal(error.category, category);
     assert.equal(error.vendorResult, vendorResult);
