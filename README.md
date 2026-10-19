@@ -1,5 +1,7 @@
 # homebridge-atlas
 
+[![verified-by-homebridge](https://img.shields.io/badge/_-verified-blueviolet?color=%23491F59&style=flat&logoColor=%23FFFFFF&logo=homebridge)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
+
 A Homebridge plugin for **Atlas Home Security** and other RISCO Cloud alarm systems: partition arming, detector state, faults and push updates in Apple Home.
 
 Stable release 1.0.2. Validated on one owner's panel through Homebridge 2.4.0 on an ARMv7 iHost. There, detector states, zone faults and push updates matched the Atlas app. A supervised test armed Home (partial), disarmed, and refused arming while a door was open. Full (Away) arming on real hardware is still pending. See [validation](docs/VALIDATION.md) and the [changelog](CHANGELOG.md).
