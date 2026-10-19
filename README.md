@@ -1,6 +1,6 @@
 # homebridge-atlas
 
-[![verified-by-homebridge](https://img.shields.io/badge/_-verified-blueviolet?color=%23491F59&style=flat&logoColor=%23FFFFFF&logo=homebridge)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
+[![verified-by-homebridge](https://img.shields.io/badge/homebridge-verified-blueviolet?color=%23491F59&style=for-the-badge&logoColor=%23FFFFFF&logo=homebridge)](https://github.com/homebridge/homebridge/wiki/Verified-Plugins)
 
 A Homebridge plugin for **Atlas Home Security** and other RISCO Cloud alarm systems: partition arming, detector state, faults and push updates in Apple Home.
 
